@@ -592,19 +592,22 @@ document.querySelectorAll('#brturn button').forEach(b=>b.onclick=()=>{brT=b.data
 const LIVE={on:false,blocked:false,last:null,busy:false,lastMun:0};
 const QS=new URLSearchParams(location.search);
 // ENSAIO: ?ensaio (ou ?ensaio=90 para 90 s) simula a apuração aos poucos usando os arquivos reais do 1º turno
-const DEMO=QS.has('ensaio')?{dur:Math.max(15,+QS.get('ensaio')||60)*1000,t0:null,cache:{},p:0}:null;
+const DEMO=QS.has('ensaio')?{dur:Math.max(15,+QS.get('ensaio')||60)*1000,t0:null,cache:{},p:0,vir:(QS.get('virada')||'flavio').toLowerCase()}:null;
 const ELE2=(DEMO?'6257':(QS.get('ele')||'6258')).replace(/\D/g,''), EC='e'+ELE2.padStart(6,'0');
 const TSE=`https://resultados.tse.jus.br/oficial/ele2026/${ELE2}/dados/`;
-function liveTxt(){if(DEMO&&LIVE.on)return ` <span class="livetag">● Ensaio</span> <span class="livets">simulação com os números reais do 1º turno, apurada aos poucos em ${Math.round(DEMO.dur/1000)} segundos (${Math.round(DEMO.p*100)}% do tempo). ${DEMO.p>=1?'Terminou; recarregue a página para ver de novo.':'Não é resultado do 2º turno.'}</span>`;
+function liveTxt(){if(DEMO&&LIVE.on)return ` <span class="livetag">● Ensaio</span> <span class="livets">simulação baseada nos números do 1º turno${DEMO.vir==='nao'?'':`, com uma virada fictícia de votos para ${DEMO.vir==='lula'?'Lula':'Flávio Bolsonaro'}`}, apurada aos poucos em ${Math.round(DEMO.dur/1000)} segundos (${Math.round(DEMO.p*100)}% do tempo). ${DEMO.p>=1?'Terminou; recarregue a página para ver de novo.':'Não é resultado do 2º turno.'}</span>`;
   if(!LIVE.on||!LIVE.last)return '';return ` <span class="livetag">● Ao vivo</span> <span class="livets">conferido no TSE às ${LIVE.last.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}; ${LIVE.wait?'confere de novo a cada 5 minutos até a apuração começar':'atualiza sozinho a cada minuto'}.</span>`;}
 async function getJ0(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok){const e=new Error('http');e.status=r.status;throw e;}return r.json();}
 function hsh(s,k){let h=2166136261^k;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return ((h>>>0)%10000)/10000;}
 function demoCopy(u,d){const p=DEMO.t0===null?0:Math.min(1,(Date.now()-DEMO.t0)/DEMO.dur);DEMO.p=p;
   const r1=hsh(u,1),r2=hsh(u,2),r3=hsh(u,3), mun=/\/pa\d{5}-/.test(u);
   let f;if(mun){const s=r1*.6,dd=.25+r2*.35;f=Math.max(0,Math.min(1,(p-s)/dd));}else f=p>=1?1:Math.pow(p,.75+r1*.5);
-  const x=JSON.parse(JSON.stringify(d));let j=0;
-  for(const c of x.carg||[])for(const a of c.agr||[])for(const pp of a.par||[])for(const k of pp.cand||[]){
-    const sign=((j++)+(r3<.5?0:1))%2?1:-1, kk=1+.45*sign*(1-f); k.vap=String(Math.round((+k.vap)*Math.pow(f,kk)));}
+  const x=JSON.parse(JSON.stringify(d));const ks=[];
+  for(const c of x.carg||[])for(const a of c.agr||[])for(const pp of a.par||[])for(const k of pp.cand||[])ks.push(k);
+  // virada simulada: parte dos votos de um candidato passa para o outro (padrão: de Lula para Flávio)
+  const L=ks.find(k=>k.n==='13'),Fv=ks.find(k=>k.n==='22');
+  if(L&&Fv&&DEMO.vir!=='nao'){const sw=mun?.03+.08*r2:.07,[de,para]=DEMO.vir==='lula'?[Fv,L]:[L,Fv],m=Math.round((+de.vap)*sw);de.vap=String(+de.vap-m);para.vap=String(+para.vap+m);}
+  ks.forEach((k,j)=>{const sign=(j+(r3<.5?0:1))%2?1:-1, kk=1+.45*sign*(1-f); k.vap=String(Math.round((+k.vap)*Math.pow(f,kk)));});
   const now=new Date(), z=n=>String(n).padStart(2,'0');
   x.s=Object.assign({},x.s,{pstn:String(Math.round(f*10000)/100),pst:(f*100).toFixed(2).replace('.',',')});
   x.tf=f>=1?'s':'n';x.dg=`${z(now.getDate())}/${z(now.getMonth()+1)}/${now.getFullYear()}`;x.hg=`${z(now.getHours())}:${z(now.getMinutes())}:${z(now.getSeconds())}`;return x;}
