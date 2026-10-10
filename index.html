@@ -175,6 +175,7 @@ body:has(dialog[open]){overflow:hidden}
 .mdl-tools input{width:100%;font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .frow .fm b .chip{display:inline-block;vertical-align:1px}
 .frow .fm b .tag{font-size:.68rem;display:inline-block;color:var(--ink)}
+#presturn{padding:0 0 12px}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;padding:8px 6px 2px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .c{color:var(--muted)}
@@ -202,7 +203,7 @@ footer{color:var(--muted);font-size:.82rem;margin-top:28px;max-width:80ch}
   <p class="lede">Quem foi o mais votado em cada cidade, cargo a cargo. A cor é a do partido do mais votado; quanto mais forte, maior a vantagem sobre o segundo colocado. Toque num município para ver os votos, mude para Regionais para ver o resultado somado dos 10 núcleos regionais, ou busque um candidato por nome ou número para ver onde ele foi votado.</p>
   <div class="tabs" role="tablist" id="tabs"></div>
   <div id="paview">
-  <div class="card"><div class="csearch"><input type="search" id="cs" autocomplete="off" aria-label="Buscar candidato por nome ou número" aria-controls="cres"><ul id="cres" role="listbox" hidden></ul></div><div class="top" id="topc"></div><p class="note" id="note"></p></div>
+  <div class="card"><div class="views" id="presturn" role="group" aria-label="Turno" hidden><button data-k="pres" aria-pressed="true">1º turno</button><button data-k="p2" aria-pressed="false">2º turno</button></div><div class="csearch"><input type="search" id="cs" autocomplete="off" aria-label="Buscar candidato por nome ou número" aria-controls="cres"><ul id="cres" role="listbox" hidden></ul></div><div class="top" id="topc"></div><p class="note" id="note"></p></div>
   <div class="cbar" id="cbar" hidden><span id="cname"></span><button id="cclear">Limpar</button></div>
   <div class="layout">
     <div class="mapwrap" id="mapwrap">
@@ -283,10 +284,18 @@ function candData(ci){
 
 // abas de cargo
 const tabs=document.getElementById('tabs');
-D.cargos.forEach((c,i)=>{const b=document.createElement('button');b.role='tab';b.textContent=c.nome;b.dataset.k=c.k;
-  b.setAttribute('aria-selected',i===0);b.onclick=()=>setCargo(c.k);tabs.appendChild(b);
-  if(c.k==='p2'){const bb=document.createElement('button');bb.role='tab';bb.textContent='Brasil';bb.dataset.k='br';bb.setAttribute('aria-selected',false);bb.onclick=()=>setCargo('br');tabs.appendChild(bb);}});
+// Abas: Presidente (com 1º e 2º turno dentro), Brasil e os demais cargos
+let presK='pres';
+const tabK=k=>k==='p2'?'pres':k;
+function mkTab(k,nome,go){const b=document.createElement('button');b.role='tab';b.textContent=nome;b.dataset.k=k;b.setAttribute('aria-selected',false);b.onclick=go;tabs.appendChild(b);}
+mkTab('pres','Presidente',()=>setCargo(presK));
+mkTab('br','Brasil',()=>setCargo('br'));
+D.cargos.filter(c=>c.k!=='pres'&&c.k!=='p2').forEach(c=>mkTab(c.k,c.nome,()=>setCargo(c.k)));
+function markTabs(){tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===tabK(cur.k)));
+  const pt=document.getElementById('presturn');pt.hidden=!(cur.k==='pres'||cur.k==='p2');
+  pt.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===cur.k));}
 const BRC={k:'br',nome:'Brasil'};
+document.querySelectorAll('#presturn button').forEach(b=>b.onclick=()=>setCargo(b.dataset.k));
 document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>setMode(b.dataset.v));
 
 // mapa
@@ -577,9 +586,9 @@ const H1=document.querySelector('h1').textContent;
 function showView(isBR){document.querySelector('h1').textContent=isBR?'Brasil 2026, estado por estado':H1;document.getElementById('paview').hidden=isBR;document.getElementById('brview').hidden=!isBR;
   document.querySelector('.lede').textContent=isBR?'Presidente, estado por estado. A cor é a de quem foi o mais votado; quanto mais forte, maior a vantagem. No 2º turno, verde e laranja marcam os estados que mudaram de lado em relação ao 1º turno.':LEDE;}
 const LEDE=document.querySelector('.lede').textContent;
-function setCargo(k){tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===k));
-  if(k==='br'){cur=BRC;showView(true);saveHash();renderBR();return;}
-  cur=D.cargos.find(c=>c.k===k);cand=null;showView(false);saveHash();render();}
+function setCargo(k){if(k==='pres'||k==='p2')presK=k;
+  if(k==='br'){cur=BRC;markTabs();showView(true);saveHash();renderBR();return;}
+  cur=D.cargos.find(c=>c.k===k);cand=null;markTabs();showView(false);saveHash();render();}
 function setMode(v,doRender=true){mode=v;document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
   qs.value='';if(v==='m')zoomK=null;saveHash();if(doRender){sel=null;render();}else{applyView();renderLegend();renderList();}}
 function saveHash(){try{history.replaceState(null,'','#'+(cur.k==='br'?'br-'+brT:cur.k+(mode==='r'?'-reg':'')+(cand!==null?'-c'+cur.cands[cand].nr:'')))}catch(e){}}
@@ -710,7 +719,7 @@ setTimeout(livePoll,1500);
 
 (function(){const h=location.hash.slice(1).split('-');if(h[0]==='br'){if(h[1]==='t1'||h[1]==='t2')brT=h[1];setCargo('br');return;}const c=D.cargos.find(x=>x.k===h[0]);if(c)cur=c;
   for(const p of h.slice(1)){if(p==='reg')mode='r';if(p[0]==='c'){const x=cur.cands.find(x=>x.nr===p.slice(1));if(x)cand=x.i;}}
-  tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===cur.k));
+  if(cur.k==='pres'||cur.k==='p2')presK=cur.k;markTabs();
   document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===mode));render();})();
 const rerender=()=>cur.k==='br'?renderBR():render();
 document.getElementById('mdl').addEventListener('click',e=>{if(e.target.id==='mdl')e.target.close();});
