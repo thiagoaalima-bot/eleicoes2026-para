@@ -167,6 +167,14 @@ body:has(dialog[open]){overflow:hidden}
 .frow .fm span,.frow .fv span{display:block;color:var(--muted);font-size:.82rem}
 .frow .fv{text-align:right;font-variant-numeric:tabular-nums}
 .mdl-t{color:var(--muted);font-size:.84rem;margin:12px 0 0}
+.allbtn{all:unset;box-sizing:border-box;display:block;width:100%;text-align:center;margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-weight:600;font-size:.92rem;cursor:pointer}
+.allbtn:hover{border-color:var(--ink)}
+.allbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.mdl-tools{padding:10px 16px 6px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.mdl-tools .views{padding:0}
+.mdl-tools input{width:100%;font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.frow .fm b .chip{display:inline-block;vertical-align:1px}
+.frow .fm b .tag{font-size:.68rem;display:inline-block;color:var(--ink)}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;padding:8px 6px 2px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .c{color:var(--muted)}
@@ -378,7 +386,8 @@ function renderTop(){
   document.getElementById('topc').innerHTML=[...c.cands].sort((a,b)=>b.v-a.v).slice(0,n).map(x=>`<div class="cand" data-ci="${x.i}" tabindex="0" title="Ver votos de ${esc(x.n)} no mapa"><span class="chip" style="background:${pcol(x.p)}"></span>
     <div class="nm">${candLabel(x)}</div>
     <div class="num"><span class="pct">${c.tot?pf(x.v/c.tot):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div>
-    <div class="track"><span style="width:${x.v/T/max*100}%;background:${pcol(x.p)}"></span></div></div>`).join('');
+    <div class="track"><span style="width:${x.v/T/max*100}%;background:${pcol(x.p)}"></span></div></div>`).join('')+
+    (c.cands.length>n?`<button class="allbtn" data-all aria-haspopup="dialog">${isDep(c)&&c.eleitos?`Ver os ${c.eleitos} eleitos e todos os ${c.cands.length} candidatos`:`Ver todos os ${c.cands.length} candidatos`} ›</button>`:'');
   const ganh=Object.entries(c.wins).sort((a,b)=>b[1]-a[1]);
   const rg=k=>c.rwins[k]||0;
   if(c.k==='p2')note.innerHTML=p2Note();
@@ -388,7 +397,7 @@ function renderTop(){
   else note.textContent=`${c.eleitos} vagas. Lista dos 5 mais votados no estado; a eleição de deputado depende também do quociente partidário. ${Object.keys(c.wins).length} candidatos diferentes foram os mais votados em algum município.`;
   cs.placeholder='Buscar candidato: nome ou número';
 }
-document.getElementById('topc').addEventListener('click',e=>{const el=e.target.closest('.cand');if(el)setCand(+el.dataset.ci);});
+document.getElementById('topc').addEventListener('click',e=>{if(e.target.closest('[data-all]')){openAll();return;}const el=e.target.closest('.cand');if(el)setCand(+el.dataset.ci);});
 document.getElementById('topc').addEventListener('keydown',e=>{const el=e.target.closest('.cand');if(el&&e.key==='Enter')setCand(+el.dataset.ci);});
 
 function renderLegend(){
@@ -470,6 +479,25 @@ function renderCap(){const box=document.getElementById('cap');if(!capOpen){box.h
   box.querySelectorAll('.sechead').forEach(b=>b.onclick=()=>{const s=+b.dataset.sec;secExp.has(s)?secExp.delete(s):secExp.add(s);renderCap();const n=document.querySelector(`.sechead[data-sec="${s}"]`);if(n)n.focus({preventScroll:true});});}
 function openCap(){capOpen=true;renderCap();document.getElementById('cap').scrollIntoView({behavior:RM.matches?'auto':'smooth',block:'start'});}
 function closeCap(){capOpen=false;renderCap();}
+let allMode='e';
+function openAll(){const c=cur,dlg=document.getElementById('mdl'),T=c.tot||1,dep=isDep(c)&&c.eleitos>0;if(!dep)allMode='t';
+  const rank={};[...c.cands].sort((a,b)=>b.v-a.v).forEach((x,i)=>rank[x.i]=i+1);
+  dlg.innerHTML=`<div class="mdl-h"><div><h2>${c.nome}</h2><p class="sub" id="allsub"></p></div><button class="mdl-x" aria-label="Fechar">×</button></div>
+   <div class="mdl-tools">${dep?`<div class="views" role="group" aria-label="Lista"><button data-am="e">Eleitos (${c.eleitos})</button><button data-am="t">Todos (${c.cands.length})</button></div>`:''}
+   <input type="search" id="allq" placeholder="Filtrar por nome, partido ou número" aria-label="Filtrar candidatos"></div>
+   <div class="mdl-b" id="allb"></div>`;
+  const draw=()=>{const q=norm(dlg.querySelector('#allq').value.trim());
+    dlg.querySelectorAll('[data-am]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.am===allMode));
+    let L=[...c.cands].sort((a,b)=>b.v-a.v);if(allMode==='e')L=L.filter(x=>x.e);
+    if(q)L=L.filter(x=>/^\d+$/.test(q)?x.nr.startsWith(q):q.split(/\s+/).every(w=>x.key.includes(w)));
+    dlg.querySelector('#allsub').textContent=allMode==='e'?`${c.eleitos} eleitos, do mais votado para o menos votado. A vaga depende também do quociente partidário, por isso há eleitos com menos votos que não eleitos.`:`${c.cands.length} candidatos, do mais votado para o menos votado.`;
+    dlg.querySelector('#allb').innerHTML=L.map((x,i)=>`<button class="frow" data-ci="${x.i}"><span class="fn">${i+1}</span><span class="fm"><b><i class="chip" style="background:${pcol(x.p)}"></i> ${x.n}${x.e?' <span class="tag">eleito</span>':x.t2?' <span class="tag">2º turno</span>':''}</b><span>${x.p} · ${x.nr}${allMode==='e'?` · ${rank[x.i]}º mais votado no estado`:''}</span></span><span class="fv"><b>${fmt.format(x.v)}</b><span>${c.tot?pf(x.v/T):'–'}</span></span></button>`).join('')
+      +(L.length?`<p class="mdl-t">Toque num candidato para ver no mapa onde ele foi votado.</p>`:'<p class="mdl-t">Nenhum candidato encontrado.</p>');
+    dlg.querySelectorAll('#allb .frow').forEach(b=>b.onclick=()=>{dlg.close();setCand(+b.dataset.ci);});};
+  dlg.querySelector('.mdl-x').onclick=()=>dlg.close();
+  dlg.querySelectorAll('[data-am]').forEach(b=>b.onclick=()=>{allMode=b.dataset.am;draw();dlg.querySelector('#allb').scrollTop=0;});
+  dlg.querySelector('#allq').oninput=draw;
+  draw();dlg.showModal();dlg.querySelector('.mdl-x').focus();}
 function openFirst(){const x=cur.cands[cand],d=candData(cand),dlg=document.getElementById('mdl');
   const ids=Object.keys(d.mun).filter(id=>d.mun[id].pos===1).sort((a,b)=>d.mun[b].v-d.mun[a].v);
   dlg.innerHTML=`<div class="mdl-h"><div><h2>${x.n}</h2><p class="sub">${x.p} · ${x.nr} · ${cur.nome}: mais votado em ${ids.length} ${ids.length>1?'municípios':'município'}, do mais votado para o menos votado</p></div><button class="mdl-x" aria-label="Fechar">×</button></div>
