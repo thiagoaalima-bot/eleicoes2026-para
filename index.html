@@ -145,6 +145,28 @@ text.ufl{font-size:12px;font-weight:700;fill:var(--ink);text-anchor:middle;domin
 .livetag{display:inline-block;color:#C2413B;font-weight:800;font-size:.8rem;margin-left:4px}
 .livets{color:var(--muted);font-size:.84rem}
 [hidden]{display:none!important}
+.stats .statbtn{all:unset;box-sizing:border-box;display:block;background:var(--bg);border-radius:10px;padding:8px 10px;cursor:pointer;border:1px solid var(--line)}
+.stats .statbtn:hover{border-color:var(--ink)}
+.stats .statbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.stats .statbtn .more{display:block;color:var(--ink);font-weight:600;font-size:.8rem;margin-top:2px}
+dialog.mdl{border:0;padding:0;border-radius:16px;background:var(--panel);color:var(--ink);width:min(560px,calc(100vw - 32px));max-height:min(82vh,720px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog.mdl[open]{display:flex;flex-direction:column}
+dialog.mdl::backdrop{background:rgba(8,16,14,.6)}
+body:has(dialog[open]){overflow:hidden}
+.mdl-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 16px 10px;border-bottom:1px solid var(--line)}
+.mdl-h h2{font-stretch:75%;font-size:1.5rem;font-weight:800;margin:0 0 2px;line-height:1.1}
+.mdl-h .sub{color:var(--muted);font-size:.9rem;margin:0}
+.mdl-x{all:unset;flex:none;cursor:pointer;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;line-height:1;border:1px solid var(--line)}
+.mdl-x:hover{border-color:var(--ink)}
+.mdl-x:focus-visible,.frow:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.mdl-b{overflow:auto;padding:2px 16px 14px;flex:1}
+.frow{all:unset;box-sizing:border-box;display:grid;grid-template-columns:1.8rem 1fr auto;gap:10px;align-items:center;width:100%;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.frow:hover{background:color-mix(in srgb,var(--line) 35%,transparent)}
+.frow .fn{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.9rem;text-align:right}
+.frow .fm b{display:block;font-weight:600}
+.frow .fm span,.frow .fv span{display:block;color:var(--muted);font-size:.82rem}
+.frow .fv{text-align:right;font-variant-numeric:tabular-nums}
+.mdl-t{color:var(--muted);font-size:.84rem;margin:12px 0 0}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;padding:8px 6px 2px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .c{color:var(--muted)}
@@ -209,6 +231,7 @@ footer{color:var(--muted);font-size:.82rem;margin-top:28px;max-width:80ch}
       </aside>
     </div>
   </section>
+  <dialog id="mdl" class="mdl" aria-label="Municípios em 1º lugar"></dialog>
   <footer>Votos: TSE, 1º turno de 4/10/2026. Presidente: site oficial de resultados do TSE (1º turno: totalização de 5/10/2026; 2º turno: horário indicado na aba). Demais cargos: dados abertos, votação nominal por município e zona (arquivo de 5/10/2026). Percentuais sobre os votos nominais válidos do cargo; para deputado não incluem votos de legenda, e para senador cada eleitor votou em dois candidatos. Brasil por estado: site de resultados do TSE (1º turno: totalização de 5/10/2026; malha dos estados: IBGE). Ao vivo: quando o site está hospedado fora do claude.ai, a página lê os arquivos públicos do TSE a cada minuto durante a apuração. Capanema por seção: TSE, votação por seção eleitoral (arquivos de 6/10/2026). Regionais: Núcleos Regionais FAEPA/SENAR (planilha enviada, 10 regionais, 144 municípios). Malha municipal: IBGE, API de malhas v3, simplificada.</footer>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
@@ -414,7 +437,7 @@ function candProfile(){const x=cur.cands[cand],d=candData(cand);
   const rk=D.regs.map((r,k)=>k).sort((a,b)=>d.reg[b].v-d.reg[a].v);
   detail.innerHTML=`<h2>${x.n}</h2><p class="sub">${x.f} · ${x.p} · número ${x.nr}${tag(x)}</p>
    <div class="stats"><div><b>${fmt.format(x.v)}</b><span>votos no Pará</span></div><div><b>${cur.tot?pf(x.v/cur.tot):'–'}</b><span>dos votos do cargo</span></div>
-   <div><b>${cand+1}º</b><span>no estado, entre ${cur.cands.length}</span></div><div><b>${d.first}</b><span>municípios em 1º lugar</span></div></div>
+   <div><b>${cand+1}º</b><span>no estado, entre ${cur.cands.length}</span></div>${d.first?`<button class="statbtn" data-first aria-haspopup="dialog"><b>${d.first}</b><span>${d.first>1?'municípios':'município'} em 1º lugar</span><span class="more">Ver ${d.first>1?'os municípios':'o município'} ›</span></button>`:`<div><b>0</b><span>municípios em 1º lugar</span></div>`}</div>
    <h3>Por regional</h3><div class="mlist short">${rk.map(k=>`<div class="mrow" data-k="${k}" tabindex="0"><span>${D.regs[k].n}</span><span class="w">${fmt.format(d.reg[k].v)} · ${pf(d.reg[k].s)}${d.reg[k].pos?` · ${d.reg[k].pos}º`:''}</span></div>`).join('')}</div>
    <h3>Municípios com mais votos (${ms.length} com votos)</h3><div class="mlist">${ms.map(id=>{const o=d.mun[id];return `<div class="mrow" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">${fmt.format(o.v)} · ${pf(o.s)} · ${o.pos}º</span></div>`}).join('')}</div>`;}
 
@@ -447,11 +470,21 @@ function renderCap(){const box=document.getElementById('cap');if(!capOpen){box.h
   box.querySelectorAll('.sechead').forEach(b=>b.onclick=()=>{const s=+b.dataset.sec;secExp.has(s)?secExp.delete(s):secExp.add(s);renderCap();const n=document.querySelector(`.sechead[data-sec="${s}"]`);if(n)n.focus({preventScroll:true});});}
 function openCap(){capOpen=true;renderCap();document.getElementById('cap').scrollIntoView({behavior:RM.matches?'auto':'smooth',block:'start'});}
 function closeCap(){capOpen=false;renderCap();}
-function detailClick(el){if(el.dataset.cap!==undefined){openCap();return;}
+function openFirst(){const x=cur.cands[cand],d=candData(cand),dlg=document.getElementById('mdl');
+  const ids=Object.keys(d.mun).filter(id=>d.mun[id].pos===1).sort((a,b)=>d.mun[b].v-d.mun[a].v);
+  dlg.innerHTML=`<div class="mdl-h"><div><h2>${x.n}</h2><p class="sub">${x.p} · ${x.nr} · ${cur.nome}: mais votado em ${ids.length} ${ids.length>1?'municípios':'município'}, do mais votado para o menos votado</p></div><button class="mdl-x" aria-label="Fechar">×</button></div>
+   <div class="mdl-b">${ids.map((id,i)=>{const o=d.mun[id],m=cur.mun[id],s=m.c[1],y=s?cur.cands[s[0]]:null;
+     return `<button class="frow" data-id="${id}"><span class="fn">${i+1}</span><span class="fm"><b>${D.nomes[id]}</b><span>Regional ${D.regs[regOf[id]].n}${y?` · ${fmt.format(o.v-s[1])} votos à frente de ${y.n}`:''}</span></span><span class="fv"><b>${fmt.format(o.v)}</b><span>${pf(o.s)}</span></span></button>`}).join('')}
+   <p class="mdl-t">Total nesses municípios: ${fmt.format(ids.reduce((s,id)=>s+d.mun[id].v,0))} votos. Toque num município para vê-lo no mapa.</p></div>`;
+  dlg.querySelector('.mdl-x').onclick=()=>dlg.close();
+  dlg.querySelectorAll('.frow').forEach(b=>b.onclick=()=>{dlg.close();selectMun(b.dataset.id);document.getElementById('mapwrap').scrollIntoView({behavior:RM.matches?'auto':'smooth',block:'start'});});
+  dlg.showModal();dlg.querySelector('.mdl-b').scrollTop=0;dlg.querySelector('.mdl-x').focus();}
+function detailClick(el){if(el.dataset.first!==undefined){openFirst();return;}
+  if(el.dataset.cap!==undefined){openCap();return;}
   if(el.dataset.back!==undefined){sel=null;zoomK=null;hilite([]);applyView();renderLegend();renderList();candProfile();return;}
   if(el.dataset.reg!==undefined){selectReg(+el.dataset.reg);return;}
   if(el.dataset.k!==undefined){if(mode!=='r')setMode('r',false);selectReg(+el.dataset.k);}else if(el.dataset.id){selectMun(el.dataset.id);}}
-detail.addEventListener('click',e=>{const el=e.target.closest('.mrow,[data-back],[data-reg],[data-cap]');if(el)detailClick(el);});
+detail.addEventListener('click',e=>{const el=e.target.closest('.mrow,[data-back],[data-reg],[data-cap],[data-first]');if(el)detailClick(el);});
 detail.addEventListener('keydown',e=>{const el=e.target.closest('.mrow');if(el&&e.key==='Enter')detailClick(el);});
 
 const ids=Object.keys(D.nomes).sort((a,b)=>D.cargos[0].mun[b].t-D.cargos[0].mun[a].t);
@@ -652,6 +685,7 @@ setTimeout(livePoll,1500);
   tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===cur.k));
   document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===mode));render();})();
 const rerender=()=>cur.k==='br'?renderBR():render();
+document.getElementById('mdl').addEventListener('click',e=>{if(e.target.id==='mdl')e.target.close();});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
 new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 </script>
