@@ -315,8 +315,8 @@ const tabs=document.getElementById('tabs');
 let presK='pres';
 const tabK=k=>k==='p2'?'pres':k;
 function mkTab(k,nome,go){const b=document.createElement('button');b.role='tab';b.textContent=nome;b.dataset.k=k;b.setAttribute('aria-selected',false);b.onclick=go;tabs.appendChild(b);}
-mkTab('pres','Presidente',()=>setCargo(presK));
 mkTab('br','Brasil',()=>setCargo('br'));
+mkTab('pres','Presidente',()=>setCargo(presK));
 D.cargos.filter(c=>c.k!=='pres'&&c.k!=='p2').forEach(c=>mkTab(c.k,c.nome,()=>setCargo(c.k)));
 function markTabs(){tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===tabK(cur.k)));
   const pt=document.getElementById('presturn');pt.hidden=!(cur.k==='pres'||cur.k==='p2');
