@@ -253,6 +253,25 @@ body:has(dialog[open]){overflow:hidden}
 .htr:hover{background:color-mix(in srgb,var(--line) 30%,transparent)}
 .htr:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @media (max-width:560px){.htr,.hthead{grid-template-columns:3rem 1fr;}.htr>span:nth-child(n+3),.hthead>span:nth-child(n+3){grid-column:2}}
+.gbtn{float:right;margin:0 0 10px 12px}
+@media (max-width:560px){.gbtn{float:none;display:block;width:100%;margin:0 0 12px}}
+dialog.mdl:has(.gbody){width:min(760px,calc(100vw - 24px))}
+.gbody .gh{font-size:.98rem;font-weight:700;margin:12px 0 2px}
+.glg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.82rem;color:var(--muted);margin:2px 0 4px}
+.glg span{display:inline-flex;align-items:center;gap:5px}.glg i{display:inline-block;width:11px;height:11px;border-radius:3px}
+.glg .gho{border:2px solid var(--muted);border-radius:50%;width:8px;height:8px}
+.gsvg{width:100%;height:auto;display:block;overflow:visible}
+.gsvg path,.gsvg text,.gsvg polyline,.gsvg line{pointer-events:none}
+.gsvg .gg{stroke:var(--line);stroke-width:1}.gsvg .g50{stroke-dasharray:3 3}
+.gsvg .gx{font-size:11px;fill:var(--muted)}
+.gsvg .gp{font-size:9px}.gsvg .gp{font-size:10px;fill:var(--muted)}
+.gsvg .gv{font-size:11px;font-weight:600;fill:var(--ink)}.gsvg .gl{font-size:12px;font-weight:700;fill:var(--ink)}
+.gsvg .ghit{fill:transparent;cursor:pointer}.gsvg .ghit.on,.gsvg .gcol.on .ghit{fill:color-mix(in srgb,var(--line) 45%,transparent)}
+.ginfo{background:var(--bg);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:.88rem;line-height:1.6}
+.gdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.gtab{margin-top:10px;font-size:.86rem}.gtab summary{cursor:pointer;font-weight:600}
+.gtab table{width:100%;border-collapse:collapse;margin-top:6px;font-variant-numeric:tabular-nums}
+.gtab th,.gtab td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}.gtab th{color:var(--muted);font-size:.78rem}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;padding:8px 6px 2px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .c{color:var(--muted)}
@@ -1093,11 +1112,49 @@ function cpBlock(c,idx){const tot=c.k.reduce((s,z)=>s+z[3],0),max=c.k.length?c.k
   const ext=d?`<p class="hsub">${fmt.format(tot)} votos válidos nominais${d.br?` · ${fmt.format(d.br)} brancos`:''}${d.nu?` · ${fmt.format(d.nu)} nulos`:''}</p>`:`<p class="hsub">${fmt.format(tot)} votos válidos nominais</p>`;
   return `<section class="card hcard"><h3 class="hh">${c.c}${HIST[cpAno].cargos.some(x=>x.c===c.c&&x.t===2)?` · ${c.t}º turno`:''}${c.c==='Senador'&&c.k.filter(z=>z[4]==='E').length>1?' <span class="pt2">· duas vagas</span>':''}</h3>${ext}${dif}<div class="hlist">${linhas}</div>
     ${pr&&c.k.length>10?`<button class="allbtn" data-cpall="${key}">${all?'Mostrar só os 10 mais votados':`Ver todos os ${c.k.length} candidatos com voto em Capanema`} ›</button>`:''}${nota}</section>`;}
+// ---- Gráfico de presidente em Capanema (1994 a 2026) ----
+function cpSerie(){const rows=[];const capId=Object.keys(D.nomes).find(k=>D.nomes[k]==='Capanema');
+  for(const y of Object.keys(HIST).filter(y=>HIST[y].tipo==='N').sort()){const P=HIST[y].cargos.filter(c=>c.c==='Presidente');if(!P.length)continue;
+    const t1=P.find(c=>c.t===1)||P[0];let fin=P.reduce((a,b)=>b.t>a.t?b:a),k=fin.k,turno=fin.t,parcial=false;
+    if(y==='2026'){const c2=D.cargos.find(c=>c.k==='p2'),m=c2&&c2.mun[capId];if(m&&m.t>0){k=m.c.map(([ci,v])=>[c2.cands[ci].n,c2.cands[ci].p,c2.cands[ci].nr,v,'']);turno=2;parcial=!(c2.meta&&c2.meta.final)&&m.a<100;}}
+    const tot=k.reduce((s,z)=>s+z[3],0),pt=k.find(z=>z[2]==='13'),adv=k.find(z=>z[2]!=='13');if(!pt||!adv||!tot)continue;const d=t1.d||{};
+    rows.push({ano:y,turno,parcial,ap:d.ap||0,co:d.co||0,ab:d.ab||0,pt:pt[3]/tot,ptn:pt[0],ptv:pt[3],adv:adv[3]/tot,advn:adv[0],advp:adv[1],advv:adv[3]});}
+  return rows;}
+let cpgSel=null;
+function cpGrafHTML(){const R=cpSerie(),n=R.length,W=Math.max(320,Math.min(680,window.innerWidth-60)),cmp=W<520,yl=y=>cmp?"'"+y.slice(2):y,L=cmp?36:46,Rr=cmp?58:78,step=(W-L-Rr)/n,bw=step*.56,cx=i=>L+i*step+step/2,f1=v=>(v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mil';
+  const mx=Math.ceil(Math.max(...R.map(r=>r.ap))/20000)*20000,H1=210,T1=24,B1=26,y1=v=>T1+(H1-T1-B1)*(1-v/mx);
+  let a='';for(let k=0;k<=mx;k+=20000)a+=`<line x1="${L}" x2="${W-Rr+24}" y1="${y1(k)}" y2="${y1(k)}" class="gg"/><text x="${L-6}" y="${y1(k)+4}" text-anchor="end" class="gx">${k/1000} mil</text>`;
+  R.forEach((r,i)=>{const x=cx(i)-bw/2,yc=y1(r.co),ya=y1(r.ap),y0=y1(0);
+    a+=`<g class="gcol${r.ano===cpgSel?' on':''}"><rect x="${cx(i)-step/2}" y="${T1-14}" width="${step}" height="${H1-T1+4}" class="ghit" data-gano="${r.ano}"/>
+      <path d="M${x},${y0}V${yc}H${x+bw}V${y0}Z" fill="#1baf7a"/><path d="M${x},${yc-2}V${ya+4}Q${x},${ya} ${x+4},${ya}H${x+bw-4}Q${x+bw},${ya} ${x+bw},${ya+4}V${yc-2}Z" fill="#A8E3CB"/>
+      ${!cmp||r.ano===cpgSel||i===n-1?`<text x="${cx(i)}" y="${ya-6}" text-anchor="middle" class="gv">${cmp?(r.ap/1000).toFixed(1).replace('.',','):f1(r.ap)}</text>`:''}<text x="${cx(i)}" y="${H1-8}" text-anchor="middle" class="gx">${yl(r.ano)}</text></g>`;});
+  const H2=cmp?260:250,T2=20,B2=40,y2=v=>T2+(H2-T2-B2)*(1-v);let b='';
+  for(const k of [0,.25,.5,.75,1])b+=`<line x1="${L}" x2="${W-Rr+24}" y1="${y2(k)}" y2="${y2(k)}" class="gg${k===.5?' g50':''}"/><text x="${L-6}" y="${y2(k)+4}" text-anchor="end" class="gx">${k*100}%</text>`;
+  R.forEach((r,i)=>{b+=`<rect x="${cx(i)-step/2}" y="${T2-10}" width="${step}" height="${H2-T2}" class="ghit${r.ano===cpgSel?' on':''}" data-gano="${r.ano}"/>`;});
+  for(const [key,col] of [['adv','#2F4E9E'],['pt','#C2413B']]){b+=`<polyline points="${R.map((r,i)=>cx(i)+','+y2(r[key])).join(' ')}" fill="none" stroke="${col}" stroke-width="2"/>`;
+    R.forEach((r,i)=>{b+=`<circle cx="${cx(i)}" cy="${y2(r[key])}" r="${r.ano===cpgSel?6:4.5}" fill="${r.turno===1||r.parcial?'var(--panel)':col}" stroke="${col}" stroke-width="2" pointer-events="none"/>`;});}
+  R.forEach((r,i)=>{b+=`<text x="${cx(i)}" y="${cmp?H2-29:H2-22}" text-anchor="middle" class="gx">${yl(r.ano)}</text><text x="${cx(i)}" y="${cmp?(i%2?H2-5:H2-16):H2-8}" text-anchor="middle" class="gp">${r.advp}</text>`;});
+  const la=R[n-1],xl=cx(n-1)+10,pk=R.reduce((m,r,i)=>r.pt>R[m].pt?i:m,0);let ly1=y2(la.pt)+4,ly2=y2(la.adv)+4;if(Math.abs(ly1-ly2)<14){if(ly1<ly2)ly2=ly1+14;else ly1=ly2+14;}
+  b+=`<text x="${xl}" y="${ly1}" class="gl">${cmp?'':'PT '}${pf(la.pt)}</text><text x="${xl}" y="${ly2}" class="gl">${cmp?'':'Adv. '}${pf(la.adv)}</text><text x="${cx(pk)}" y="${y2(R[pk].pt)-10}" text-anchor="middle" class="gv">${pf(R[pk].pt)}</text>`;
+  const s=R.find(r=>r.ano===cpgSel);
+  const info=s?`<div class="ginfo"><b>${s.ano}</b> · ${s.turno===2?'2º turno':'1º turno'}${s.parcial?' (parcial)':''}<br><span class="gdot" style="background:#C2413B"></span>${s.ptn} (PT): ${fmt.format(s.ptv)} votos · ${pf(s.pt)}<br><span class="gdot" style="background:#2F4E9E"></span>${s.advn} (${s.advp}): ${fmt.format(s.advv)} votos · ${pf(s.adv)}<br>Diferença: ${fmt.format(Math.abs(s.ptv-s.advv))} votos · Eleitores aptos: ${fmt.format(s.ap)} · compareceram ${fmt.format(s.co)} · abstenção ${fmt.format(s.ab)} (${pf(s.ab/s.ap)})</div>`:`<p class="hint" style="margin:6px 0 0">Toque numa barra ou num ano para ver os números.</p>`;
+  const tab=`<details class="gtab"><summary>Ver em tabela</summary><table><thead><tr><th>Ano</th><th>Aptos</th><th>Abstenção</th><th>PT</th><th>Adversário</th></tr></thead><tbody>${R.map(r=>`<tr><td>${r.ano}${r.turno===2?'':'*'}</td><td>${fmt.format(r.ap)}</td><td>${pf(r.ab/r.ap)}</td><td>${r.ptn} ${pf(r.pt)}</td><td>${r.advn} (${r.advp}) ${pf(r.adv)}</td></tr>`).join('')}</tbody></table><p class="hint">* só 1º turno.</p></details>`;
+  return `<div class="mdl-h"><div><h2>Presidente em Capanema, 1994 a 2026</h2><p class="sub">Eleitorado e votação do PT contra o principal adversário</p></div><button class="mdl-x" aria-label="Fechar">×</button></div>
+   <div class="mdl-b gbody"><h3 class="gh">Eleitores aptos</h3><div class="glg"><span><i style="background:#1baf7a"></i>Compareceram</span><span><i style="background:#A8E3CB"></i>Abstenção</span><span class="hint">abstenção do 1º turno</span></div>
+   <svg viewBox="0 0 ${W} ${H1}" class="gsvg" role="img" aria-label="Eleitores aptos em Capanema por eleição">${a}</svg>
+   <h3 class="gh">PT contra o principal adversário (% dos votos válidos)</h3><div class="glg"><span><i style="background:#C2413B;border-radius:50%"></i>PT</span><span><i style="background:#2F4E9E;border-radius:50%"></i>Adversário (partido embaixo de cada ano)</span><span><i class="gho"></i>1º turno ou parcial</span></div>
+   <svg viewBox="0 0 ${W} ${H2}" class="gsvg" role="img" aria-label="Percentual do PT e do adversário em Capanema">${b}</svg>${info}
+   <p class="hint" style="margin:8px 0 0">Turno final de cada eleição (2º turno quando houve). Em 1994 e 1998 não houve 2º turno. Em 2026, o 2º turno entra aqui conforme a apuração.</p>${tab}</div>`;}
+function openCPGraf(){const dlg=document.getElementById('mdl');const draw=()=>{const st=dlg.querySelector('.mdl-b')?dlg.querySelector('.mdl-b').scrollTop:0;dlg.innerHTML=cpGrafHTML();
+    dlg.querySelector('.mdl-x').onclick=()=>dlg.close();dlg.querySelectorAll('[data-gano]').forEach(el=>{el.onclick=()=>{cpgSel=el.dataset.gano;draw();};el.onmouseenter=()=>{if(matchMedia('(hover:hover)').matches&&cpgSel!==el.dataset.gano){cpgSel=el.dataset.gano;draw();}};});
+    const bd=dlg.querySelector('.mdl-b');if(bd)bd.scrollTop=st;};
+  cpgSel=null;draw();dlg.showModal();dlg.querySelector('.mdl-x').focus();}
+
 function renderCP(){const anos=cpAnos(cpTipo);if(!cpAno||HIST[cpAno].tipo!==cpTipo)cpAno=anos[0];
   document.querySelectorAll('#cptipo button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===cpTipo));
   document.getElementById('cpanos').innerHTML=anos.map(y=>`<button data-ano="${y}" aria-pressed="${y===cpAno}">${y}</button>`).join('');
   const o=HIST[cpAno],c0=o.cargos[0],d=c0&&c0.d;
-  document.getElementById('cpsum').innerHTML=`<h2>Capanema · eleição ${cpTipo==='N'?'nacional':'municipal'} de ${cpAno}</h2><p class="sub">${cpTipo==='N'?'Presidente, governador, senador e deputados':'Prefeito e vereadores'} · votos dos eleitores de Capanema${cpAno==='2026'?' · 1º turno; o 2º turno de presidente está na aba Presidente':''}</p>`+
+  document.getElementById('cpsum').innerHTML=`${cpTipo==='N'?'<button class="pbtn main gbtn" data-cpgraf>Ver gráfico de presidente, 1994 a 2026</button>':''}<h2>Capanema · eleição ${cpTipo==='N'?'nacional':'municipal'} de ${cpAno}</h2><p class="sub">${cpTipo==='N'?'Presidente, governador, senador e deputados':'Prefeito e vereadores'} · votos dos eleitores de Capanema${cpAno==='2026'?' · 1º turno; o 2º turno de presidente está na aba Presidente':''}</p>`+
     (d?`<div class="stats st5"><div><b>${fmt.format(d.ap)}</b><span>eleitores aptos</span></div><div><b>${fmt.format(d.co)}</b><span>compareceram (${pf(d.co/d.ap)})</span></div><div><b>${fmt.format(d.ab)}</b><span>abstenções (${pf(d.ab/d.ap)})</span></div><div><b>${fmt.format(d.br)}</b><span>brancos (${c0.c.toLowerCase()})</span></div><div><b>${fmt.format(d.nu)}</b><span>nulos (${c0.c.toLowerCase()})</span></div></div>`:'');
   document.getElementById('cpblocks').innerHTML=o.cargos.map(cpBlock).join('');
   // vencedores ao longo dos anos
@@ -1105,7 +1162,7 @@ function renderCP(){const anos=cpAnos(cpTipo);if(!cpAno||HIST[cpAno].tipo!==cpTi
   document.getElementById('cpvenc').innerHTML=`<h3 class="hh">Mais votados em Capanema, eleição a eleição</h3><p class="hsub">${cpTipo==='N'?'Turno final em cada eleição. Toque num ano para ver os detalhes.':'Toque num ano para ver os detalhes.'}</p>
     <div class="htable"><div class="hthead"><span>Ano</span>${cargosV.map(c=>`<span>${c}</span>`).join('')}</div>${anos.map(y=>{const oo=HIST[y];return `<button class="htr${y===cpAno?' on':''}" data-ano="${y}"><span>${y}</span>${cargosV.map(c=>{const f=cpFinal(oo,c);if(!f||!f.k.length)return '<span>–</span>';const tot=f.k.reduce((s,z)=>s+z[3],0),w=f.k[0];
       return `<span><i class="chip" style="background:${hcol(w[1])}"></i>${w[0]} <span class="pt2">${w[1]} · ${pf(w[3]/tot)}</span>${f.k[1]?`<span class="pt2"> · +${fmt.format(w[3]-f.k[1][3])}</span>`:''}</span>`;}).join('')}</button>`}).join('')}</div>`;}
-document.getElementById('cpview').addEventListener('click',e=>{const t=e.target.closest('#cptipo button');if(t){cpTipo=t.dataset.t;cpAno=null;saveHash();renderCP();return;}
+document.getElementById('cpview').addEventListener('click',e=>{if(e.target.closest('[data-cpgraf]')){openCPGraf();return;}const t=e.target.closest('#cptipo button');if(t){cpTipo=t.dataset.t;cpAno=null;saveHash();renderCP();return;}
   const a=e.target.closest('[data-ano]');if(a){cpAno=a.dataset.ano;saveHash();renderCP();if(a.classList.contains('htr'))document.getElementById('cpsum').scrollIntoView({behavior:RM.matches?'auto':'smooth',block:'start'});return;}
   const b=e.target.closest('[data-cpall]');if(b){const k=b.dataset.cpall;cpAll.has(k)?cpAll.delete(k):cpAll.add(k);renderCP();}});
 
