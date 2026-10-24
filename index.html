@@ -399,8 +399,8 @@ function fill(id){const L=lvl(id);
 function tipShow(e,id){const b=mapwrap.getBoundingClientRect(); let txt; const L=lvl(id);
   if(cand!==null){const d=candData(cand); const o=L==='m'?d.mun[id]:d.reg[regOf[id]];
     txt=`${L==='m'?D.nomes[id]:D.regs[regOf[id]].n}: ${fmt.format(o.v)} votos (${pf(o.s)})`;}
-  else if(L==='m'){const m=cur.mun[id],f=flipOf(m,P1.mun[id]);txt=`${D.nomes[id]}: ${m.w===null?'sem urnas apuradas':cur.cands[m.w].n}${f?` (virou; 1º turno: ${f.de.n})`:''}`;}
-  else{const k=regOf[id],r=cur.reg[k],f=flipOf(r,P1.reg[k]);txt=`${D.regs[k].n}: ${r.w===null?'sem urnas apuradas':cur.cands[r.w].n}${f?` (virou; 1º turno: ${f.de.n})`:''}`;}
+  else if(L==='m'){const m=cur.mun[id],f=flipOf(m,P1.mun[id]);txt=`${D.nomes[id]}: ${m.w===null?'sem urnas apuradas':cur.cands[m.w].n+(isP()?' '+pf(m.c[0][1]/m.t)+adv(m):'')}${f?` (virou; 1º turno: ${f.de.n})`:''}`;}
+  else{const k=regOf[id],r=cur.reg[k],f=flipOf(r,P1.reg[k]);txt=`${D.regs[k].n}: ${r.w===null?'sem urnas apuradas':cur.cands[r.w].n+(isP()?' '+pf(r.c[0][1]/r.t)+adv(r):'')}${f?` (virou; 1º turno: ${f.de.n})`:''}`;}
   tip.textContent=txt;tip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30; if(x>b.width-230)x-=240; tip.style.left=x+'px';tip.style.top=y+'px';}
 function pick(id){if(mode==='m'||zoomK===regOf[id])selectMun(id);else selectReg(regOf[id]);}
 
@@ -541,6 +541,9 @@ function diffHTML(list,tot,sen){const L=[...list].sort((a,b)=>b.v-a.v);if(!tot||
   if(sen&&L[2])s+=` Do 2º para o 3º, na disputa pela 2ª vaga: <b>${fmt.format(L[1].v-L[2].v)} votos</b> (${pp(L[1].v,L[2].v)} pontos).`;return s;}
 function diffRows(cands,o){if(!o||!o.c||o.c.length<2||!o.t)return '';const a=o.c[0],b=o.c[1];
   return `<p class="diffl">Diferença do 1º para o 2º aqui: <b>${fmt.format(a[1]-b[1])} votos</b> (${((a[1]-b[1])/o.t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} pontos), ${cands[a[0]].n} sobre ${cands[b[0]].n}.</p>`;}
+const isP=()=>cur.k==='pres'||cur.k==='p2';
+const adv=o=>o&&o.c&&o.c[0]?` · +${fmt.format(o.c[0][1]-(o.c[1]?o.c[1][1]:0))} votos`:'';
+const advP=o=>isP()?adv(o):'';
 const tag=x=>x.e?'<span class="tag">eleito</span>':x.t2?'<span class="tag">2º turno</span>':'';
 function candLabel(c){return `${c.n} <span class="pt">${c.p} · ${c.nr}</span>${tag(c)}`}
 function row(ci,v,t,hl,pos){const x=cur.cands[ci];return `<div class="row${hl?' hl':''}"><span class="chip" style="background:${pcol(x.p)}"></span><span>${pos?`<span class="pos">${pos}º</span> `:''}${x.n} <span class="pt2">${x.p} · ${x.nr}</span>${tag(x)}</span><span>${fmt.format(v)} <span class="p">${pf(v/t)}</span></span></div>`;}
@@ -610,7 +613,7 @@ function selectReg(k){sel={t:'r',k};const r=cur.reg[k],R=D.regs[k],w=cur.cands[r
   if(r.w===null){detail.innerHTML=`<h2>Regional ${R.n}</h2><p class="sub">Sede em ${R.s} · ${R.ids.length} municípios</p><p class="hint">Ainda sem urnas apuradas nesta regional.</p>`;return;}
   const ms=[...R.ids].sort(cand!==null?(a,b)=>candData(cand).mun[b].v-candData(cand).mun[a].v:(a,b)=>cur.mun[b].t-cur.mun[a].t);
   const mrow=id=>{if(cand!==null){const o=candData(cand).mun[id];return `<div class="mrow" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">${fmt.format(o.v)} · ${pf(o.s)}${o.pos?` · ${o.pos}º`:''}</span></div>`;}
-    const m=cur.mun[id];if(m.w===null)return `<div class="mrow" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">aguardando</span></div>`;const x=cur.cands[m.w];return `<div class="mrow" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w"><i class="chip" style="background:${pcol(x.p)}"></i>${x.n} ${pf(m.c[0][1]/m.t)}</span></div>`;};
+    const m=cur.mun[id];if(m.w===null)return `<div class="mrow" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">aguardando</span></div>`;const x=cur.cands[m.w];return `<div class="mrow" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w"><i class="chip" style="background:${pcol(x.p)}"></i>${x.n} ${pf(m.c[0][1]/m.t)}${advP(m)}</span></div>`;};
   detail.innerHTML=`<h2>Regional ${R.n}</h2><p class="sub">Sede em ${R.s} · ${R.ids.length} municípios · toque numa cidade no mapa para ver os votos dela · ${cur.nome}: ${w.n} na frente por ${fmt.format(lead(r))} votos</p>`+(()=>{const f=flipOf(r,P1.reg[k]);return f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu nesta regional; no 2º turno, ${f.para.n}.</span></p>`:''})()+(cand!==null?candLine(candData(cand).reg[k]):'')+rowsHTML(r)+
    `<h3>${cand!==null?`Votos de ${cur.cands[cand].n} por município`:'Mais votado em cada município'}</h3><div class="mlist">`+ms.map(mrow).join('')+`</div>`+backBtn();}
 function backBtn(){return cand!==null?`<button class="back" data-back>Ver resumo de ${cur.cands[cand].n}</button>`:'';}
@@ -699,13 +702,13 @@ function renderList(){const q=norm(qs.value.trim());
     const set=new Set(match);
     d3.select('#map').classed('dim',!!q); paths.classed('match',f=>set.has(f.properties.id));
     list.innerHTML=match.map(id=>{if(d){const o=d.mun[id];return `<div class="li" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">${fmt.format(o.v)} · ${pf(o.s)}</span></div>`;}
-      const m=cur.mun[id];if(m.w===null)return `<div class="li" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">aguardando</span></div>`;const x=cur.cands[m.w];return `<div class="li" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w"><i class="chip" style="background:${pcol(x.p)}"></i>${x.n} ${pf(m.c[0][1]/m.t)}</span></div>`}).join('')
+      const m=cur.mun[id];if(m.w===null)return `<div class="li" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w">aguardando</span></div>`;const x=cur.cands[m.w];return `<div class="li" data-id="${id}" tabindex="0"><span>${D.nomes[id]}</span><span class="w"><i class="chip" style="background:${pcol(x.p)}"></i>${x.n} ${pf(m.c[0][1]/m.t)}${advP(m)}</span></div>`}).join('')
       ||'<p class="hint" style="padding-top:8px">Nenhum município encontrado. Confira a grafia.</p>';
   }else{
     const ks=D.regs.map((r,k)=>k).filter(k=>!q||norm(D.regs[k].n).includes(q)||D.regs[k].ids.some(id=>norm(D.nomes[id]).includes(q)))
       .sort(d?(a,b)=>d.reg[b].v-d.reg[a].v:(a,b)=>cur.reg[b].t-cur.reg[a].t), set=new Set(ks);
     d3.select('#map').classed('dim',!!q); paths.classed('match',f=>set.has(regOf[f.properties.id]));
-    list.innerHTML=ks.map(k=>{const r=cur.reg[k];const right=d?`${fmt.format(d.reg[k].v)} · ${pf(d.reg[k].s)}`:r.w===null?'aguardando':(x=>`<i class="chip" style="background:${pcol(x.p)}"></i>${x.n} ${pf(r.c[0][1]/r.t)}`)(cur.cands[r.w]);
+    list.innerHTML=ks.map(k=>{const r=cur.reg[k];const right=d?`${fmt.format(d.reg[k].v)} · ${pf(d.reg[k].s)}`:r.w===null?'aguardando':(x=>`<i class="chip" style="background:${pcol(x.p)}"></i>${x.n} ${pf(r.c[0][1]/r.t)}${advP(r)}`)(cur.cands[r.w]);
       return `<div class="li" data-k="${k}" tabindex="0"><span>${D.regs[k].n}<span class="sd"> · ${D.regs[k].ids.length} mun.</span></span><span class="w">${right}</span></div>`}).join('')
       ||'<p class="hint" style="padding-top:8px">Nenhuma regional encontrada. Confira a grafia.</p>';
   }}
@@ -784,7 +787,7 @@ function brFlip(sg){if(brT!=='t2')return null;const o=BRD.t2.uf[sg],r=BRD.t1.uf[
 function brFill(sg){const T=BRD[brT],o=T.uf[sg],bci=brCI(T);if(bci>=0){const d=brCD(T,bci),u=d.uf[sg];return brShade(pcol(T.cands[bci].p),u.s,d.cap);}if(!o||o.w===null)return mix(css('--muted'),.16);const s=Math.min(o.mg/T.cap,1),f=brFlip(sg);
   return f?mix(flipCol(f.para.nr),.55+.45*s):mix(pcol(T.cands[o.w].p),.28+.72*s);}
 function brTip(e,sg){const b=document.getElementById('brwrap').getBoundingClientRect(),T=BRD[brT],o=T.uf[sg],f=brFlip(sg),bci=brCI(T);
-  brtip.textContent=bci>=0?(u=>`${ufName[sg]}: ${fmt.format(u.v)} votos (${pf(u.s)})`)(brCD(T,bci).uf[sg]):`${ufName[sg]}: ${o.w===null?'sem urnas apuradas':`${T.cands[o.w].n} ${pf(o.c[0][1]/o.t)}`}${f?` (virou; 1º turno: ${f.de.n})`:''}`;
+  brtip.textContent=bci>=0?(u=>`${ufName[sg]}: ${fmt.format(u.v)} votos (${pf(u.s)})`)(brCD(T,bci).uf[sg]):`${ufName[sg]}: ${o.w===null?'sem urnas apuradas':`${T.cands[o.w].n} ${pf(o.c[0][1]/o.t)}${adv(o)}`}${f?` (virou; 1º turno: ${f.de.n})`:''}`;
   brtip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30;if(x>b.width-230)x-=240;brtip.style.left=x+'px';brtip.style.top=y+'px';}
 function brRows(T,o){return o.c.slice(0,6).map(([ci,v])=>{const x=T.cands[ci];return `<div class="row"><span class="chip" style="background:${pcol(x.p)}"></span><span>${x.n} <span class="pt2">${x.p} · ${x.nr}</span></span><span>${fmt.format(v)} <span class="p">${pf(v/o.t)}</span></span></div>`}).join('')+
   (o.c.length>6?`<div class="row"><span class="chip" style="background:var(--line)"></span><span>Demais candidatos</span><span>${fmt.format(o.t-o.c.slice(0,6).reduce((s,z)=>s+z[1],0))}</span></div>`:'')+
@@ -832,7 +835,7 @@ function renderBR(){loadFotos('pres');const T=BRD[brT];
   const q=norm(document.getElementById('brq').value.trim());
   const L=BRD.ufs.filter(u=>!q||norm(u.n+' '+u.sg).includes(q)).sort((a,b)=>(BRD.t1.uf[b.sg].t)-(BRD.t1.uf[a.sg].t));
   const bd=bci>=0?brCD(T,bci):null;if(bd)L.sort((a,b)=>bd.uf[b.sg].v-bd.uf[a.sg].v);
-  document.getElementById('brlist').innerHTML=L.map(u=>{const o=T.uf[u.sg];const right=bd?`${fmt.format(bd.uf[u.sg].v)} · ${pf(bd.uf[u.sg].s)}`:!o||o.w===null?'aguardando':(x=>`<i class="chip" style="background:${brFlip(u.sg)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}`)(T.cands[o.w]);
+  document.getElementById('brlist').innerHTML=L.map(u=>{const o=T.uf[u.sg];const right=bd?`${fmt.format(bd.uf[u.sg].v)} · ${pf(bd.uf[u.sg].s)}`:!o||o.w===null?'aguardando':(x=>`<i class="chip" style="background:${brFlip(u.sg)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}${adv(o)}`)(T.cands[o.w]);
     return `<div class="li${u.sg===brSel?' on':''}" data-sg="${u.sg}" tabindex="0"><span>${u.n}</span><span class="w">${right}</span></div>`}).join('')||'<p class="hint">Nenhum estado encontrado.</p>';}
 document.getElementById('brlist').addEventListener('click',e=>{const el=e.target.closest('.li');if(el)brSelect(el.dataset.sg);});
 document.getElementById('brlist').addEventListener('keydown',e=>{const el=e.target.closest('.li');if(el&&e.key==='Enter')brSelect(el.dataset.sg);});
@@ -959,8 +962,8 @@ function mdFill(a3){if(a3==='BRA')return mix(css('--muted'),.42);if(!mdIn(a3))re
   const T=WD[mdT],o=T.pa[a3];const bu=buFor(a3);if(bu)return `url(#bu-${T.cands[bu.w].nr})`;if(!o||o.w===null)return mix(css('--muted'),.3);const s=Math.min(o.mg/T.cap,1),f=mdFlip(a3);
   return f?mix(flipCol(f.para.nr),.55+.45*s):mix(pcol(T.cands[o.w].p),.28+.72*s);}
 function mdTip(e,a3){const b=document.getElementById('mdwrap').getBoundingClientRect(),T=WD[mdT],o=T.pa[a3],f=mdFlip(a3);
-  const bu=buFor(a3);if(bu){mdtip.textContent=`${WD.n[a3]}: ${T.cands[bu.w].n} ${pf(bu.c[0][1]/bu.t)} (boletim de urna, não oficial)`;mdtip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30;if(x>b.width-240)x-=250;mdtip.style.left=x+'px';mdtip.style.top=y+'px';return;}
-  mdtip.textContent=`${WD.n[a3]}: ${!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos apurados'):`${T.cands[o.w].n} ${pf(o.c[0][1]/o.t)}`}${f?` (virou; 1º turno: ${f.de.n})`:''}`;
+  const bu=buFor(a3);if(bu){mdtip.textContent=`${WD.n[a3]}: ${T.cands[bu.w].n} ${pf(bu.c[0][1]/bu.t)}${adv(bu)} (boletim de urna, não oficial)`;mdtip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30;if(x>b.width-240)x-=250;mdtip.style.left=x+'px';mdtip.style.top=y+'px';return;}
+  mdtip.textContent=`${WD.n[a3]}: ${!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos apurados'):`${T.cands[o.w].n} ${pf(o.c[0][1]/o.t)}${adv(o)}`}${f?` (virou; 1º turno: ${f.de.n})`:''}`;
   mdtip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30;if(x>b.width-240)x-=250;mdtip.style.left=x+'px';mdtip.style.top=y+'px';}
 function mdZoom(a3){let tr='translate(0,0) scale(1)';mdZs=1;
   if(a3){const f=WGEO.features.find(x=>x.properties.a3===a3);let x0,y0,x1,y1;
@@ -1015,7 +1018,7 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
       (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o)+mdRows(T,o));}
   const q=norm(document.getElementById('mdq').value.trim());
   const L=Object.keys(WD.n).filter(a=>!q||norm(WD.n[a]).includes(q)).sort((a,b)=>((WD.t1.pa[b]||{}).t||0)-((WD.t1.pa[a]||{}).t||0)||WD.n[a].localeCompare(WD.n[b]));
-  document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a],bu=buFor(a);const right=bu?(x=>`<i class="chip" style="${buSw(x)}"></i>${x.n} ${pf(bu.c[0][1]/bu.t)} · boletim`)(T.cands[bu.w]):!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}`)(T.cands[o.w]);
+  document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a],bu=buFor(a);const right=bu?(x=>`<i class="chip" style="${buSw(x)}"></i>${x.n} ${pf(bu.c[0][1]/bu.t)}${adv(bu)} · boletim`)(T.cands[bu.w]):!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}${adv(o)}`)(T.cands[o.w]);
     return `<div class="li${a===mdSel?' on':''}" data-a3="${a}" tabindex="0"><span>${WD.n[a]}${o&&o.t?`<span class="sd"> · ${fmt.format(o.t)} votos</span>`:''}</span><span class="w">${right}</span></div>`}).join('')||'<p class="hint">Nenhum país encontrado.</p>';}
 document.getElementById('mdlist').addEventListener('click',e=>{const el=e.target.closest('.li');if(el)mdSelect(el.dataset.a3);});
 document.getElementById('mdlist').addEventListener('keydown',e=>{const el=e.target.closest('.li');if(el&&e.key==='Enter')mdSelect(el.dataset.a3);});
