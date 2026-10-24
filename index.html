@@ -218,6 +218,11 @@ body:has(dialog[open]){overflow:hidden}
 #mdmap .mdbra{font-size:11px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:middle;opacity:.7;pointer-events:none}
 #mdtop .cand.nc{cursor:default}
 #mdtop .cand.nc:hover .nm{text-decoration:none}
+.diffl{font-size:.9rem;margin:10px 0 0;color:var(--ink)}
+.diffl:empty{display:none}
+#diffp,#brdiff,#mddiff{padding:8px 10px;background:var(--bg);border-radius:10px}
+.bubox{font-size:.88rem;border:1.5px dashed var(--muted);border-radius:10px;padding:8px 10px;margin:10px 0}
+.butag{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--ink);color:var(--bg);border-radius:4px;padding:1px 6px;margin-right:4px;vertical-align:1px}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;padding:8px 6px 2px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend .c{color:var(--muted)}
@@ -245,7 +250,7 @@ footer{color:var(--muted);font-size:.82rem;margin-top:28px;max-width:80ch}
   <p class="lede">Quem foi o mais votado em cada cidade, cargo a cargo. A cor é a do partido do mais votado; quanto mais forte, maior a vantagem sobre o segundo colocado. Toque num município para ver os votos, mude para Regionais para ver o resultado somado dos 10 núcleos regionais, ou busque um candidato por nome ou número para ver onde ele foi votado.</p>
   <div class="tabs" role="tablist" id="tabs"></div>
   <div id="paview">
-  <div class="card"><div class="views" id="presturn" role="group" aria-label="Turno" hidden><button data-k="pres" aria-pressed="true">1º turno</button><button data-k="p2" aria-pressed="false">2º turno</button></div><div class="csearch"><input type="search" id="cs" autocomplete="off" aria-label="Buscar candidato por nome ou número" aria-controls="cres"><ul id="cres" role="listbox" hidden></ul></div><div class="top" id="topc"></div><p class="note" id="note"></p></div>
+  <div class="card"><div class="views" id="presturn" role="group" aria-label="Turno" hidden><button data-k="pres" aria-pressed="true">1º turno</button><button data-k="p2" aria-pressed="false">2º turno</button></div><div class="csearch"><input type="search" id="cs" autocomplete="off" aria-label="Buscar candidato por nome ou número" aria-controls="cres"><ul id="cres" role="listbox" hidden></ul></div><div class="top" id="topc"></div><p class="diffl" id="diffp"></p><p class="note" id="note"></p></div>
   <div class="cbar" id="cbar" hidden><span id="cname"></span><button id="cclear">Limpar</button></div>
   <div class="layout">
     <div class="mapwrap" id="mapwrap">
@@ -267,7 +272,7 @@ footer{color:var(--muted);font-size:.82rem;margin-top:28px;max-width:80ch}
   </div>
   <section id="mdview" hidden>
     <div class="card"><div class="views" id="mdturn" role="group" aria-label="Turno"><button data-t="t1" aria-pressed="false">1º turno</button><button data-t="t2" aria-pressed="true">2º turno</button></div>
-      <div class="top" id="mdtop"></div><p class="note" id="mdnote"></p></div>
+      <div class="top" id="mdtop"></div><p class="diffl" id="mddiff"></p><p class="bubox" id="mdbu" hidden></p><p class="note" id="mdnote"></p></div>
     <div class="layout">
       <div class="mapwrap" id="mdwrap">
         <div class="views brviews"><button id="mdback" hidden>← <span class="lg">Voltar ao mundo</span><span class="sm">Mundo</span></button></div>
@@ -284,7 +289,7 @@ footer{color:var(--muted);font-size:.82rem;margin-top:28px;max-width:80ch}
   </section>
   <section id="brview" hidden>
     <div class="card"><div class="views" id="brturn" role="group" aria-label="Turno"><button data-t="t1" aria-pressed="false">1º turno</button><button data-t="t2" aria-pressed="true">2º turno</button></div>
-      <div class="top" id="brtop"></div><p class="note" id="brnote"></p></div>
+      <div class="top" id="brtop"></div><p class="diffl" id="brdiff"></p><p class="note" id="brnote"></p></div>
     <div class="layout">
       <div class="mapwrap" id="brwrap">
         <div class="views brviews"><button id="brback" hidden>← <span class="lg">Voltar ao Brasil</span><span class="sm">Brasil</span></button></div>
@@ -530,6 +535,12 @@ async function deliverPDF(share){const P=PDFREADY;if(!P)return;const file=new Fi
   if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:P.fname,data:P.blob});return;}catch(e){if(e&&e.code==='declined')return;}}}
   const a=document.createElement('a');a.href=URL.createObjectURL(P.blob);a.download=P.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);}
 
+function diffHTML(list,tot,sen){const L=[...list].sort((a,b)=>b.v-a.v);if(!tot||L.length<2||!L[0].v)return '';
+  const pp=(a,b)=>((a-b)/tot*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  let s=`Diferença do 1º para o 2º: <b>${fmt.format(L[0].v-L[1].v)} votos</b> (${pp(L[0].v,L[1].v)} pontos), ${L[0].n} sobre ${L[1].n}.`;
+  if(sen&&L[2])s+=` Do 2º para o 3º, na disputa pela 2ª vaga: <b>${fmt.format(L[1].v-L[2].v)} votos</b> (${pp(L[1].v,L[2].v)} pontos).`;return s;}
+function diffRows(cands,o){if(!o||!o.c||o.c.length<2||!o.t)return '';const a=o.c[0],b=o.c[1];
+  return `<p class="diffl">Diferença do 1º para o 2º aqui: <b>${fmt.format(a[1]-b[1])} votos</b> (${((a[1]-b[1])/o.t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} pontos), ${cands[a[0]].n} sobre ${cands[b[0]].n}.</p>`;}
 const tag=x=>x.e?'<span class="tag">eleito</span>':x.t2?'<span class="tag">2º turno</span>':'';
 function candLabel(c){return `${c.n} <span class="pt">${c.p} · ${c.nr}</span>${tag(c)}`}
 function row(ci,v,t,hl,pos){const x=cur.cands[ci];return `<div class="row${hl?' hl':''}"><span class="chip" style="background:${pcol(x.p)}"></span><span>${pos?`<span class="pos">${pos}º</span> `:''}${x.n} <span class="pt2">${x.p} · ${x.nr}</span>${tag(x)}</span><span>${fmt.format(v)} <span class="p">${pf(v/t)}</span></span></div>`;}
@@ -549,6 +560,7 @@ function renderTop(){
     <div class="num"><span class="pct">${c.tot?pf(x.v/c.tot):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div>
     <div class="track"><span style="width:${x.v/T/max*100}%;background:${pcol(x.p)}"></span></div></div>`).join('')+
     (c.cands.length>n?`<button class="allbtn" data-all aria-haspopup="dialog">${isDep(c)&&c.eleitos?`Ver os ${c.eleitos} eleitos e todos os ${c.cands.length} candidatos`:`Ver todos os ${c.cands.length} candidatos`} ›</button>`:'');
+  document.getElementById('diffp').innerHTML=diffHTML(c.cands,c.tot,c.k==='sen');
   const ganh=Object.entries(c.wins).sort((a,b)=>b[1]-a[1]);
   const rg=k=>c.rwins[k]||0;
   if(c.k==='p2')note.innerHTML=p2Note();
@@ -786,6 +798,7 @@ function renderBR(){loadFotos('pres');const T=BRD[brT];
   const nTop=brT==='t1'?4:2,bci=brCI(T),cs=[...T.cands].sort((a,b)=>b.v-a.v).slice(0,brAll?99:nTop),max=(cs[0].v/(T.tot||1))||1;
   document.getElementById('brtop').innerHTML=cs.map(x=>`<div class="cand${x.nr===brCandNr?' on':''}" data-bnr="${x.nr}" tabindex="0" title="Ver votos de ${esc(x.n)} no mapa">${av(x,'pres')}<div class="nm">${x.n} <span class="pt">${x.p} · ${x.nr}</span>${brT==='t1'&&x.st==='2º turno'?'<span class="tag">2º turno</span>':''}${x.st&&/^eleito/i.test(x.st)?'<span class="tag">eleito</span>':''}</div>
     <div class="num"><span class="pct">${T.tot?pf(x.v/T.tot):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div><div class="track"><span style="width:${T.tot?x.v/T.tot/max*100:0}%;background:${pcol(x.p)}"></span></div></div>`).join('')+(T.cands.length>nTop?`<button class="allbtn" data-brall>${brAll?'Mostrar menos':`Ver todos os ${T.cands.length} candidatos`} ›</button>`:'');
+  document.getElementById('brdiff').innerHTML=diffHTML(T.cands,T.tot);
   let flips={},keep={},none=0;for(const u of BRD.ufs){if(u.sg==='ZZ')continue;const o=T.uf[u.sg];if(!o||o.w===null){none++;continue;}const f=brFlip(u.sg),nr=T.cands[o.w].nr;(f?flips:keep)[nr]=((f?flips:keep)[nr]||0)+1;}
   const nf=Object.values(flips).reduce((s,x)=>s+x,0);
   document.getElementById('brnote').innerHTML=brStatus(T)+(brT==='t2'&&!T.meta.pend&&T.tot?` ${[...T.cands].sort((a,b)=>b.v-a.v)[0].n} está ${fmt.format(Math.abs(T.cands[0].v-T.cands[1].v))} votos à frente.`:'')+
@@ -815,7 +828,7 @@ function renderBR(){loadFotos('pres');const T=BRD[brT];
       (f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu aqui; no 2º turno, ${f.para.n}.</span></p>`:'')+
       (brT==='t2'?`<p class="cmp">1º turno aqui: ${BRD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>BRD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
       (bci>=0&&o.t?(u=>`<p class="cl">${av(T.cands[bci],'pres','sm')}<span><b>${T.cands[bci].n}</b>: ${fmt.format(u.v)} votos (${pf(u.s)})${u.pos?`, ${u.pos}º lugar`:''}</span></p>`)(brCD(T,bci).uf[brSel]):'')+
-      (o.w===null?'<p class="hint">Ainda sem urnas apuradas neste estado.</p>':brRows(T,o))+(bci>=0?`<button class="back" data-brback2>Ver resumo de ${T.cands[bci].n}</button>`:'');}
+      (o.w===null?'<p class="hint">Ainda sem urnas apuradas neste estado.</p>':diffRows(T.cands,o)+brRows(T,o))+(bci>=0?`<button class="back" data-brback2>Ver resumo de ${T.cands[bci].n}</button>`:'');}
   const q=norm(document.getElementById('brq').value.trim());
   const L=BRD.ufs.filter(u=>!q||norm(u.n+' '+u.sg).includes(q)).sort((a,b)=>(BRD.t1.uf[b.sg].t)-(BRD.t1.uf[a.sg].t));
   const bd=bci>=0?brCD(T,bci):null;if(bd)L.sort((a,b)=>bd.uf[b.sg].v-bd.uf[a.sg].v);
@@ -927,12 +940,26 @@ const mddots=mdg.append('g').selectAll('circle').data(Object.entries(WD.pt)).joi
   .on('mousemove',(e,d)=>mdTip(e,d[0])).on('mouseleave',()=>mdtip.style.opacity=0).on('click',(e,d)=>mdSelect(d[0]))
   .on('keydown',(e,d)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();mdSelect(d[0]);}});
 const mdtip=document.getElementById('mdtip');
+// Boletins de urna divulgados pela imprensa, antes do resultado oficial (arquivo boletins.json)
+let BU=null,BUt=0;
+async function loadBU(force){if(!force&&Date.now()-BUt<240000)return;BUt=Date.now();
+  try{const r=await fetch('boletins.json?t='+Date.now(),{cache:'no-store'});if(r.ok){BU=await r.json();if(cur.k==='mundo')renderMD();}}catch(e){}}
+setInterval(()=>{if(!document.hidden&&cur.k==='mundo')loadBU();},60000);
+function buFor(a3){if(mdT!=='t2'||!BU||!BU.paises||!BU.paises[a3])return null;const T=WD.t2,o=T.pa[a3];if(o&&o.t>0)return null;
+  const b=BU.paises[a3],c=T.cands.map((x,ci)=>[ci,+(b.c&&b.c[x.nr])||0]).filter(z=>z[1]>0).sort((p,q)=>q[1]-p[1]);if(!c.length)return null;
+  return {c,t:c.reduce((s,z)=>s+z[1],0),w:c[0][0],fonte:b.fonte||'',hora:b.hora||'',secoes:b.secoes||''};}
+function buTot(){const T=WD.t2,acc=T.cands.map(()=>0);let n=0;for(const a3 in WD.n){const b=buFor(a3);if(!b)continue;n++;b.c.forEach(([ci,v])=>acc[ci]+=v);}return {acc,n};}
+function buPatterns(){let d=mdsvg.select('defs');if(d.empty())d=mdsvg.insert('defs',':first-child');d.selectAll('pattern').remove();
+  WD.t2.cands.forEach(x=>{const col=pcol(x.p),p=d.append('pattern').attr('id','bu-'+x.nr).attr('patternUnits','userSpaceOnUse').attr('width',6).attr('height',6).attr('patternTransform','rotate(45)');
+    p.append('rect').attr('width',6).attr('height',6).attr('fill',mix(col,.22));p.append('rect').attr('width',2.6).attr('height',6).attr('fill',col);});}
+const buSw=x=>`background:repeating-linear-gradient(45deg,${pcol(x.p)} 0 3px,${mix(pcol(x.p),.22)} 3px 6px)`;
 function mdFlip(a3){if(mdT!=='t2')return null;const o=WD.t2.pa[a3],r=WD.t1.pa[a3];if(!o||o.w===null||!r||r.w===null)return null;
   const a=WD.t1.cands[r.w],b=WD.t2.cands[o.w];return a.nr===b.nr?null:{de:a,para:b};}
 function mdFill(a3){if(a3==='BRA')return mix(css('--muted'),.42);if(!mdIn(a3))return mix(css('--muted'),.09);
-  const T=WD[mdT],o=T.pa[a3];if(!o||o.w===null)return mix(css('--muted'),.3);const s=Math.min(o.mg/T.cap,1),f=mdFlip(a3);
+  const T=WD[mdT],o=T.pa[a3];const bu=buFor(a3);if(bu)return `url(#bu-${T.cands[bu.w].nr})`;if(!o||o.w===null)return mix(css('--muted'),.3);const s=Math.min(o.mg/T.cap,1),f=mdFlip(a3);
   return f?mix(flipCol(f.para.nr),.55+.45*s):mix(pcol(T.cands[o.w].p),.28+.72*s);}
 function mdTip(e,a3){const b=document.getElementById('mdwrap').getBoundingClientRect(),T=WD[mdT],o=T.pa[a3],f=mdFlip(a3);
+  const bu=buFor(a3);if(bu){mdtip.textContent=`${WD.n[a3]}: ${T.cands[bu.w].n} ${pf(bu.c[0][1]/bu.t)} (boletim de urna, não oficial)`;mdtip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30;if(x>b.width-240)x-=250;mdtip.style.left=x+'px';mdtip.style.top=y+'px';return;}
   mdtip.textContent=`${WD.n[a3]}: ${!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos apurados'):`${T.cands[o.w].n} ${pf(o.c[0][1]/o.t)}`}${f?` (virou; 1º turno: ${f.de.n})`:''}`;
   mdtip.style.opacity=1;let x=e.clientX-b.left+12,y=e.clientY-b.top-30;if(x>b.width-240)x-=250;mdtip.style.left=x+'px';mdtip.style.top=y+'px';}
 function mdZoom(a3){let tr='translate(0,0) scale(1)';mdZs=1;
@@ -946,15 +973,19 @@ function mdSelect(a3){mdSel=a3;mdZoom(a3);renderMD();}
 document.getElementById('mdback').onclick=()=>{mdSel=null;mdZoom(null);document.getElementById('mdq').value='';renderMD();};
 function mdStatus(T){const m=T.meta;if(m.pend)return `<b>Votação em 25 de outubro.</b> Os resultados oficiais do exterior só começam a aparecer às 17h de Brasília; os países das Américas entram mais tarde, quando fecham as seções. ${LIVE.on?'O site está conectado ao TSE.':''}`;
   return m.final?`<b>Apuração concluída no exterior</b> (dados do TSE de ${m.dg} às ${m.hg}).`:`<span class="live">Parcial</span> <b>${m.pst.toLocaleString('pt-BR',{maximumFractionDigits:2})}% das seções do exterior apuradas</b> (TSE, ${m.dg} às ${m.hg}).`;}
-function mdRows(T,o){return o.c.slice(0,6).map(([ci,v])=>{const x=T.cands[ci];return `<div class="row">${av(x,'pres','sm')}<span>${x.n} <span class="pt2">${x.p} · ${x.nr}</span></span><span>${fmt.format(v)} <span class="p">${pf(v/o.t)}</span></span></div>`}).join('')+
+function mdRows(T,o){return o.c.slice(0,6).map(([ci,v])=>{const x=T.cands[ci];return `<div class="row"><span class="chip" style="background:${pcol(x.p)}"></span><span>${x.n} <span class="pt2">${x.p} · ${x.nr}</span></span><span>${fmt.format(v)} <span class="p">${pf(v/o.t)}</span></span></div>`}).join('')+
   (o.c.length>6?`<div class="row"><span class="chip" style="background:var(--line)"></span><span>Demais candidatos</span><span>${fmt.format(o.t-o.c.slice(0,6).reduce((s,z)=>s+z[1],0))}</span></div>`:'')+
   `<div class="row"><span></span><span style="color:var(--muted)">Votos válidos</span><span>${fmt.format(o.t)}</span></div>`;}
-function renderMD(){loadFotos('pres');const T=WD[mdT];
+function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.querySelectorAll('#mdturn button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===mdT));
   const cs=[...T.cands].sort((a,b)=>b.v-a.v).slice(0,mdT==='t1'?4:2),max=(cs[0].v/(T.tot||1))||1;
   document.getElementById('mdtop').innerHTML=cs.map(x=>`<div class="cand nc">${av(x,'pres')}<div class="nm">${x.n} <span class="pt">${x.p} · ${x.nr}</span></div>
     <div class="num"><span class="pct">${T.tot?pf(x.v/T.tot):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div><div class="track"><span style="width:${T.tot?x.v/T.tot/max*100:0}%;background:${pcol(x.p)}"></span></div></div>`).join('');
-  let flips={},keep={},none=0;for(const a3 in WD.n){const o=T.pa[a3];if(!o||o.w===null){none++;continue;}const f=mdFlip(a3),nr=T.cands[o.w].nr;(f?flips:keep)[nr]=((f?flips:keep)[nr]||0)+1;}
+  document.getElementById('mddiff').innerHTML=diffHTML(T.cands,T.tot);
+  const BT=mdT==='t2'?buTot():{n:0};
+  document.getElementById('mdbu').innerHTML=BT.n?`<span class="butag">Não oficial</span> <b>Boletins de urna divulgados pela imprensa</b>, em ${BT.n} ${BT.n>1?'países':'país'} ainda sem resultado oficial: ${T.cands.map((x,ci)=>[x,BT.acc[ci]]).sort((a,b)=>b[1]-a[1]).map(([x,v])=>`${x.n} ${fmt.format(v)}`).join(' · ')}${BU.atualizado?` (atualizado às ${BU.atualizado})`:''}. Os números oficiais do TSE substituem os boletins a partir das 17h de Brasília.`:'';
+  document.getElementById('mdbu').hidden=!BT.n;
+  let flips={},keep={},none=0,nbu=0;for(const a3 in WD.n){const o=T.pa[a3];if(buFor(a3)){nbu++;continue;}if(!o||o.w===null){none++;continue;}const f=mdFlip(a3),nr=T.cands[o.w].nr;(f?flips:keep)[nr]=((f?flips:keep)[nr]||0)+1;}
   const nf=Object.values(flips).reduce((s,x)=>s+x,0),np=Object.keys(WD.n).length;
   const m1=WD.t1.meta;
   document.getElementById('mdnote').innerHTML=mdStatus(T)+(mdT==='t1'?` ${fmt.format(m1.te)} brasileiros aptos a votar no exterior, em ${np} países; ${fmt.format(m1.c)} compareceram.`:'')+
@@ -967,19 +998,24 @@ function renderMD(){loadFotos('pres');const T=WD[mdT];
   const items=[];for(const x of T.cands){if(keep[x.nr])items.push(`<span><i class="chip" style="background:${pcol(x.p)}"></i>${x.n} <span class="c">${keep[x.nr]}</span></span>`);}
   for(const x of T.cands){if(flips[x.nr])items.push(`<span><i class="chip" style="background:${flipCol(x.nr)}"></i>Virou para ${x.n} <span class="c">${flips[x.nr]}</span></span>`);}
   if(mdT==='t2'&&T.meta.pend)T.cands.forEach(x=>items.push(`<span><i class="chip" style="background:${pcol(x.p)}"></i>${x.n}</span>`)),T.cands.forEach(x=>items.push(`<span><i class="chip" style="background:${flipCol(x.nr)}"></i>Virou para ${x.n}</span>`));
+  if(nbu)T.cands.forEach(x=>{const k=Object.keys(WD.n).filter(a=>{const b=buFor(a);return b&&T.cands[b.w].nr===x.nr;}).length;if(k)items.push(`<span><i class="chip" style="${buSw(x)}"></i>${x.n}, boletim não oficial <span class="c">${k}</span></span>`);});
   if(none)items.push(`<span><i class="chip" style="background:${mix(css('--muted'),.3)}"></i>${mdT==='t2'&&!T.meta.final?'Aguardando':'Sem votos apurados'} <span class="c">${none}</span></span>`);
   document.getElementById('mdlegend').innerHTML=items.join('');
   document.getElementById('mdlnote').textContent=(mdT==='t2'?'Mais votado em cada país (número de países). Verde: era de Lula no 1º turno e agora deu Flávio Bolsonaro. Laranja: era de Flávio e agora deu Lula.':'Mais votado em cada país no 1º turno (número de países). Cor mais forte, vantagem maior.')+' Países pequenos aparecem como bolinhas.';
   const det=document.getElementById('mddetail');
   if(!mdSel)det.innerHTML=`<p class="hint">Toque num país do mapa ou escolha um na lista abaixo. Os países pequenos aparecem como bolinhas no mapa.</p>`;
+  else if(buFor(mdSel)){const b=buFor(mdSel),r1=WD.t1.pa[mdSel];
+    det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · 2º turno · brasileiros que votam neste país</p>
+     <p class="bubox"><span class="butag">Não oficial</span> Soma de boletins de urna divulgados pela imprensa${b.secoes?` (${b.secoes})`:''}${b.fonte?`. Fonte: ${esc(b.fonte)}`:''}${b.hora?`, ${esc(b.hora)}`:''}. O resultado oficial do TSE aparece a partir das 17h de Brasília.</p>`+
+     (r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+diffRows(T.cands,b)+mdRows(T,b);}
   else{const o=T.pa[mdSel],f=mdFlip(mdSel),r1=WD.t1.pa[mdSel];
     det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · ${mdT==='t1'?'1º turno':'2º turno'} · brasileiros que votam neste país${o&&o.w!==null&&!T.meta.final&&o.a<100?` · ${o.a.toLocaleString('pt-BR',{maximumFractionDigits:1})}% das seções apuradas`:''}</p>`+
       (f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu aqui; no 2º turno, ${f.para.n}.</span></p>`:'')+
       (mdT==='t2'&&r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
-      (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:mdRows(T,o));}
+      (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o)+mdRows(T,o));}
   const q=norm(document.getElementById('mdq').value.trim());
   const L=Object.keys(WD.n).filter(a=>!q||norm(WD.n[a]).includes(q)).sort((a,b)=>((WD.t1.pa[b]||{}).t||0)-((WD.t1.pa[a]||{}).t||0)||WD.n[a].localeCompare(WD.n[b]));
-  document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a];const right=!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}`)(T.cands[o.w]);
+  document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a],bu=buFor(a);const right=bu?(x=>`<i class="chip" style="${buSw(x)}"></i>${x.n} ${pf(bu.c[0][1]/bu.t)} · boletim`)(T.cands[bu.w]):!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}`)(T.cands[o.w]);
     return `<div class="li${a===mdSel?' on':''}" data-a3="${a}" tabindex="0"><span>${WD.n[a]}${o&&o.t?`<span class="sd"> · ${fmt.format(o.t)} votos</span>`:''}</span><span class="w">${right}</span></div>`}).join('')||'<p class="hint">Nenhum país encontrado.</p>';}
 document.getElementById('mdlist').addEventListener('click',e=>{const el=e.target.closest('.li');if(el)mdSelect(el.dataset.a3);});
 document.getElementById('mdlist').addEventListener('keydown',e=>{const el=e.target.closest('.li');if(el&&e.key==='Enter')mdSelect(el.dataset.a3);});
