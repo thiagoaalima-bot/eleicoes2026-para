@@ -1237,6 +1237,12 @@ let BU=null,BUt=0;const BU_FIM=Date.parse('2026-10-25T17:00:00-03:00');
 async function loadBU(force){if(!force&&Date.now()-BUt<240000)return;BUt=Date.now();
   try{const r=await fetch('boletins.json?t='+Date.now(),{cache:'no-store'});if(r.ok){BU=await r.json();if(cur.k==='mundo')renderMD();}}catch(e){}}
 setInterval(()=>{if(!document.hidden&&cur.k==='mundo'){if(Date.now()<BU_FIM)loadBU();else renderMD();}},60000);
+// próxima busca: as tarefas rodam aos :20 e :50 (horário de Brasília) e levam ~2 min; última às 16h50
+function buProx(){const now=Date.now();for(let k=0;k<4;k++){const d=new Date(now+k*30*60000);
+    const p=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d);
+    const h=+p.find(x=>x.type==='hour').value,m=+p.find(x=>x.type==='minute').value;
+    const slot=m<22?20:m<52?50:null;if(k===0&&slot!==null){const hh=h,mm=slot;if(hh*60+mm>16*60+50)return '';return `${String(hh).padStart(2,'0')}:${mm}`;}
+    if(k===0){const hh=h+1;if(hh*60+20>16*60+50)return '';return `${String(hh).padStart(2,'0')}:20`;}}return '';}
 function buFor(a3){if(mdT!=='t2'||Date.now()>=BU_FIM||!BU||!BU.paises||!BU.paises[a3])return null;const T=WD.t2,o=T.pa[a3];if(o&&o.t>0)return null;
   const b=BU.paises[a3],c=T.cands.map((x,ci)=>[ci,+(b.c&&b.c[x.nr])||0]).filter(z=>z[1]>0).sort((p,q)=>q[1]-p[1]);if(!c.length)return null;
   return {c,t:c.reduce((s,z)=>s+z[1],0),w:c[0][0],fonte:b.fonte||'',hora:b.hora||'',secoes:b.secoes||''};}
@@ -1296,7 +1302,7 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   if(mdT!=='t2'){bub.hidden=true;}
   else if(OF){bub.hidden=false;bub.className='bubox of';bub.innerHTML=`<span class="dot ok"></span><b>Dados oficiais do TSE.</b> Desde as 17h de Brasília o mapa mostra só os números oficiais, atualizados sozinhos enquanto a apuração avança. Os países das Américas entram depois, à medida que fecham as seções.`;}
   else{bub.hidden=false;bub.className='bubox';const bs=BU&&(BU.busca||BU.atualizado);
-    bub.innerHTML=`<span class="dot"></span><b>Online:</b> pesquisando boletins de urna na imprensa a cada 30 minutos${bs?` · última busca às ${bs}`:''}.<br>`+
+    bub.innerHTML=`<span class="dot"></span><b>Online:</b> pesquisando boletins de urna na imprensa a cada 30 minutos${bs?` · última busca às ${bs}`:''}${buProx()?` · próxima por volta das ${buProx()}`:''}.<br>`+
     (BT.n?`<span class="butag">Não oficial</span> <b>Boletins de urna divulgados pela imprensa</b>, em ${BT.n} ${BT.n>1?'países':'país'} ainda sem resultado oficial: ${T.cands.map((x,ci)=>[x,BT.acc[ci]]).sort((a,b)=>b[1]-a[1]).map(([x,v])=>`${x.n} ${fmt.format(v)}`).join(' · ')}${BU.atualizado?` (atualizado às ${BU.atualizado})`:''}.`:`<span class="butag">Não oficial</span> Nenhum boletim de urna divulgado ainda. Os primeiros devem sair na madrugada, quando fecham as seções da Oceania e da Ásia.`)+` <b>A partir das 17h de domingo (25/10), o mapa passa a mostrar os dados oficiais do TSE.</b>`;}
   let flips={},keep={},none=0,nbu=0;for(const a3 in WD.n){const o=T.pa[a3];if(buFor(a3)){nbu++;continue;}if(!o||o.w===null){none++;continue;}const f=mdFlip(a3),nr=T.cands[o.w].nr;(f?flips:keep)[nr]=((f?flips:keep)[nr]||0)+1;}
   const nf=Object.values(flips).reduce((s,x)=>s+x,0),np=Object.keys(WD.n).length;
