@@ -303,6 +303,7 @@ dialog.mdl:has(.gbody){width:min(760px,calc(100vw - 24px))}
 .gwl{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-weight:700;margin:12px 0 4px;font-size:.92rem}
 .gwl span{display:inline-flex;align-items:center;gap:6px}
 .gwn{font-size:.8rem;color:var(--muted);margin:6px 0 0;line-height:1.35}
+.gwbtn{margin-top:12px}
 .legend [data-lf]{cursor:pointer;border-radius:999px;padding:3px 9px;margin:-3px -9px;transition:opacity .15s,background .15s}
 .legend [data-lf]:hover{background:color-mix(in srgb,var(--line) 45%,transparent)}
 .legend [data-lf]:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
@@ -541,7 +542,7 @@ function p2Note(){const c=cur,m=c.meta,[a,b]=[...c.cands].sort((x,y)=>y.v-x.v);
   const fc=flipCounts(Object.keys(c.mun).map(id=>[c.mun[id],P1.mun[id]])), nf=Object.values(fc.flip).reduce((s,x)=>s+x,0);
   const fl=nf?` <b>${nf} ${nf>1?'municípios mudaram':'município mudou'} de lado</b> em relação ao 1º turno: ${c.cands.filter(x=>fc.flip[x.nr]).map(x=>`${fc.flip[x.nr]} para ${x.n}`).join(', ')}.`:'';
   return `${st} (dados do TSE de ${m.dg} às ${m.hg}).${diff}${fl} ${c.none?`${c.none} municípios ainda sem urnas apuradas.`:''} ${t1}`+liveTxt();}
-function p2Gw(id){if(cur.k!=='p2')return '';return id!==null?(cur.mun[id].a>=100||cur.meta.final?ganhoHTML('aqui',cur.cands,cur.mun[id],P1.cands,P1.mun[id]):''):(cur.meta.final?ganhoHTML('no Pará',cur.cands,totO(cur.cands),P1.cands,totO(P1.cands)):'');}
+function p2Gw(id){if(cur.k!=='p2')return '';return id!==null?(cur.mun[id].a>=100||cur.meta.final?ganhoHTML('aqui',cur.cands,cur.mun[id],P1.cands,P1.mun[id],'',D.nomes[id]+' (PA)',`Fonte: TSE, resultado oficial${cur.meta.dg?` (${cur.meta.dg} às ${cur.meta.hg})`:''}.`):''):(cur.meta.final?ganhoHTML('no Pará',cur.cands,totO(cur.cands),P1.cands,totO(P1.cands),'','Pará',`Fonte: TSE, resultado oficial${cur.meta.dg?` (${cur.meta.dg} às ${cur.meta.hg})`:''}.`):'');}
 function p2Cmp(id){if(cur.k!=='p2')return '';
   const ap=id!==null&&!cur.meta.pend&&!cur.meta.final?` · ${cur.mun[id].a.toLocaleString('pt-BR',{maximumFractionDigits:1})}% das seções apuradas`:'';
   const f=id!==null?flipOf(cur.mun[id],P1.mun[id]):null;
@@ -642,7 +643,7 @@ async function deliverPDF(share){const P=PDFREADY;if(!P)return;const file=new Fi
 // Quadro de 100 quadradinhos: de cada 100 votos que os dois ganharam do 1º para o 2º turno, quantos foram para cada um
 const gvOf=(cands,o,nr)=>{if(!o||!o.c)return 0;const ci=cands.findIndex(x=>x.nr===nr),e=o.c.find(z=>z[0]===ci);return e?e[1]:0;};
 const totO=cands=>({c:cands.map((x,i)=>[i,x.v])});
-function ganhoHTML(onde,c2,o2,c1,o1,extra){if(!o2||!o1||!o2.c||!o2.c.length)return '';
+function ganhoHTML(onde,c2,o2,c1,o1,extra,lugar,fonte){if(!o2||!o1||!o2.c||!o2.c.length)return '';
   const P=c2.slice(0,2).map(x=>({x,g:gvOf(c2,o2,x.nr)-gvOf(c1,o1,x.nr)})).sort((a,b)=>b.g-a.g),[A,B]=P;
   if(!A||!B||A.g<=0)return '';const nota=extra?`<p class="gwn">${extra}</p>`:'';
   if(B.g<=0)return `<div class="gw"><p class="gwt">Do 1º para o 2º turno${onde?' '+onde:''}, só ${A.x.n} ganhou votos</p><p class="gwl"><span><i class="chip" style="background:${pcol(A.x.p)}"></i>${A.x.n}: +${fmt.format(A.g)}</span><span><i class="chip" style="background:${pcol(B.x.p)}"></i>${B.x.n}: ${B.g<0?'−'+fmt.format(-B.g):'0'}</span></p>${nota}</div>`;
@@ -651,7 +652,38 @@ function ganhoHTML(onde,c2,o2,c1,o1,extra){if(!o2||!o1||!o2.c||!o2.c.length)retu
   return `<div class="gw"><p class="gwt">De cada 100 votos que os dois ganharam no 2º turno${onde?' '+onde:''}, ${a} foram para ${A.x.n}</p>
     <div class="gwg" role="img" aria-label="${a} de 100 quadrados para ${A.x.n} e ${100-a} para ${B.x.n}">${sq}</div>
     <p class="gwl"><span><i class="chip" style="background:${pcol(A.x.p)}"></i>${A.x.n}: +${fmt.format(A.g)}</span><span><i class="chip" style="background:${pcol(B.x.p)}"></i>${B.x.n}: +${fmt.format(B.g)}</span></p>
-    <p class="gwn">Votos que ${A.x.n} e ${B.x.n} ganharam do 1º para o 2º turno${onde?' '+onde:''}, somados: ${fmt.format(tot)}. Cada quadrado é 1% desse total.</p>${nota}</div>`;}
+    <p class="gwn">Votos que ${A.x.n} e ${B.x.n} ganharam do 1º para o 2º turno${onde?' '+onde:''}, somados: ${fmt.format(tot)}. Cada quadrado é 1% desse total.</p>${nota}
+    ${lugar?`<button class="pbtn main wide gwbtn" data-gwimg="${encodeURIComponent(JSON.stringify({l:lugar,f:fonte||'Fonte: TSE.',no:!!extra,a,A:[A.x.n,pcol(A.x.p),A.g],B:[B.x.n,pcol(B.x.p),B.g]}))}">Compartilhar como imagem</button>`:''}</div>`;}
+async function deliverBlob(blob,fname,share){const file=new File([blob],fname,{type:blob.type});
+  if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fname.replace(/\.\w+$/,'')});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:fname,data:blob});return;}catch(e){if(e&&e.code==='declined')return;}}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);}
+// imagem para redes sociais (1080 x 1350) com o quadro de 100 quadrados
+async function gwImage(d){const W=1080,H=1350,M=80,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+  const F='"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif';try{await Promise.all(['800 70px Archivo','700 36px Archivo','400 28px Archivo'].map(f=>document.fonts.load(f)));}catch(e){}
+  const BG='#EEEAE3',INK='#16231F',MUT='#5C6B66';g.fillStyle=BG;g.fillRect(0,0,W,H);g.textBaseline='alphabetic';
+  const wrap=(txt,font,maxW)=>{g.font=font;const out=[];let line='';for(const w of txt.split(' ')){const tr=line?line+' '+w:w;if(g.measureText(tr).width>maxW&&line){out.push(line);line=w;}else line=tr;}if(line)out.push(line);return out;};
+  const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();g.fill();};
+  g.fillStyle=INK;g.font=`800 52px ${F}`;g.fillText('VotoPA',M,110);g.font=`500 28px ${F}`;g.fillStyle=MUT;g.textAlign='right';g.fillText('votopa.pages.dev',W-M,106);g.textAlign='left';
+  let y=200;g.font=`700 30px ${F}`;g.fillStyle=MUT;const lug=`${d.l.toUpperCase()} · PRESIDENTE, 2º TURNO`;g.fillText(lug,M,y);
+  if(d.no){const lw=g.measureText(lug).width;g.font=`800 24px ${F}`;const tw=g.measureText('NÃO OFICIAL').width+24;let tx=M+lw+18,ty=y-26;if(tx+tw>W-M){tx=M;ty=y+14;y+=44;}g.fillStyle=INK;rr(tx,ty,tw,36,6);g.fillStyle=BG;g.fillText('NÃO OFICIAL',tx+12,ty+27);}
+  const title=wrap(`De cada 100 votos que os dois ganharam no 2º turno, ${d.a} foram para ${d.A[0]}`,`800 64px ${F}`,W-2*M);
+  g.fillStyle=INK;g.font=`800 64px ${F}`;y+=34;for(const l of title){y+=72;g.fillText(l,M,y);}
+  const note=wrap(`Votos que ${d.A[0]} e ${d.B[0]} ganharam do 1º para o 2º turno, somados: ${fmt.format(d.A[2]+d.B[2])}. Cada quadrado é 1% desse total. ${d.f}`,`400 28px ${F}`,W-2*M);
+  g.font=`700 36px ${F}`;const legW=g.measureText(`${d.A[0]}: +${fmt.format(d.A[2])}`).width+g.measureText(`${d.B[0]}: +${fmt.format(d.B[2])}`).width+130,legH=legW<=W-2*M?40:96;
+  const GAP=10,room=H-56-note.length*38-48-legH-56-(y+44),S=Math.max(30,Math.min(52,Math.floor((room-9*GAP)/10))),GW=10*S+9*GAP,gx=(W-GW)/2;y+=44;
+  for(let i=0;i<100;i++){const r=Math.floor(i/10),c=i%10;g.fillStyle=i<d.a?d.A[1]:d.B[1];rr(gx+c*(S+GAP),y+r*(S+GAP),S,S,9);}
+  y+=10*S+9*GAP+64;
+  const items=[[d.A[1],`${d.A[0]}: +${fmt.format(d.A[2])}`],[d.B[1],`${d.B[0]}: +${fmt.format(d.B[2])}`]];g.font=`700 36px ${F}`;
+  const iw=items.map(([,s])=>40+g.measureText(s).width),total=iw[0]+iw[1]+50;
+  const draw=(it,x,yy)=>{g.fillStyle=it[0];rr(x,yy-28,30,30,6);g.fillStyle=INK;g.fillText(it[1],x+40,yy);};
+  if(total<=W-2*M){let x=(W-total)/2;draw(items[0],x,y);draw(items[1],x+iw[0]+50,y);}else{draw(items[0],(W-iw[0])/2,y);y+=56;draw(items[1],(W-iw[1])/2,y);}
+  g.font=`400 28px ${F}`;g.fillStyle=MUT;let ny=Math.max(y+64,H-56-(note.length-1)*38);for(const l of note){g.fillText(l,M,ny);ny+=38;}
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  const slug=norm(d.l).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');return {blob,fname:`votopa-2turno-${slug}.png`};}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-gwimg]');if(!b)return;const old=b.textContent;b.disabled=true;b.textContent='Gerando imagem…';
+  try{const d=JSON.parse(decodeURIComponent(b.dataset.gwimg)),r=await gwImage(d);await deliverBlob(r.blob,r.fname,true);}catch(err){console.error(err);}
+  b.disabled=false;b.textContent=old;});
 function diffHTML(list,tot,sen){const L=[...list].sort((a,b)=>b.v-a.v);if(!tot||L.length<2||!L[0].v)return '';
   const pp=(a,b)=>((a-b)/tot*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   let s=`Diferença do 1º para o 2º: <b>${fmt.format(L[0].v-L[1].v)} votos</b> (${pp(L[0].v,L[1].v)} pontos), ${L[0].n} sobre ${L[1].n}.`;
@@ -952,13 +984,13 @@ function renderBR(){loadFotos('pres');const T=BRD[brT];
      <div id="brpdfrow" class="pdfrow">${brPdfRowHTML(T,bci)}</div>
      <h3>Por estado</h3><div class="mlist">${L.map(u=>{const o=dd.uf[u.sg];return `<div class="mrow" data-sg="${u.sg}" tabindex="0"><span>${u.n}</span><span class="w">${fmt.format(o.v)} · ${pf(o.s)}${o.pos?` · ${o.pos}º`:''}</span></div>`}).join('')}</div>
      <button class="back" data-brclear>Limpar candidato</button>`;}
-  else if(!brSel)det.innerHTML='<p class="hint">Toque num estado do mapa ou escolha um na lista abaixo. O Exterior aparece só na lista. Toque num candidato acima para ver onde ele foi votado e gerar o relatório em PDF.</p>'+(brT==='t2'&&T.meta.final?ganhoHTML('no Brasil',T.cands,totO(T.cands),BRD.t1.cands,totO(BRD.t1.cands)):'');
+  else if(!brSel)det.innerHTML='<p class="hint">Toque num estado do mapa ou escolha um na lista abaixo. O Exterior aparece só na lista. Toque num candidato acima para ver onde ele foi votado e gerar o relatório em PDF.</p>'+(brT==='t2'&&T.meta.final?ganhoHTML('no Brasil',T.cands,totO(T.cands),BRD.t1.cands,totO(BRD.t1.cands),'','Brasil',`Fonte: TSE, resultado oficial${T.meta.dg?` (${T.meta.dg} às ${T.meta.hg})`:''}.`):'');
   else{const o=T.uf[brSel],f=brFlip(brSel),r1=BRD.t1.uf[brSel];
     det.innerHTML=`<h2>${ufName[brSel]}</h2><p class="sub">Presidente · ${brT==='t1'?'1º turno':'2º turno'}${o.w!==null&&!T.meta.final&&o.a<100?` · ${o.a.toLocaleString('pt-BR',{maximumFractionDigits:1})}% das seções apuradas`:''}</p>`+
       (f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu aqui; no 2º turno, ${f.para.n}.</span></p>`:'')+
       (brT==='t2'?`<p class="cmp">1º turno aqui: ${BRD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>BRD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
       (bci>=0&&o.t?(u=>`<p class="cl">${av(T.cands[bci],'pres','sm')}<span><b>${T.cands[bci].n}</b>: ${fmt.format(u.v)} votos (${pf(u.s)})${u.pos?`, ${u.pos}º lugar`:''}</span></p>`)(brCD(T,bci).uf[brSel]):'')+
-      (o.w===null?'<p class="hint">Ainda sem urnas apuradas neste estado.</p>':diffRows(T.cands,o)+brRows(T,o))+(brT==='t2'&&(o.a>=100||T.meta.final)?ganhoHTML('aqui',T.cands,o,BRD.t1.cands,r1):'')+(bci>=0?`<button class="back" data-brback2>Ver resumo de ${T.cands[bci].n}</button>`:'');}
+      (o.w===null?'<p class="hint">Ainda sem urnas apuradas neste estado.</p>':diffRows(T.cands,o)+brRows(T,o))+(brT==='t2'&&(o.a>=100||T.meta.final)?ganhoHTML('aqui',T.cands,o,BRD.t1.cands,r1,'',ufName[brSel],`Fonte: TSE, resultado oficial${T.meta.dg?` (${T.meta.dg} às ${T.meta.hg})`:''}.`):'')+(bci>=0?`<button class="back" data-brback2>Ver resumo de ${T.cands[bci].n}</button>`:'');}
   const q=norm(document.getElementById('brq').value.trim());
   const L=BRD.ufs.filter(u=>(!q||norm(u.n+' '+u.sg).includes(q))&&(brGeo==='mun'||!LF.br||brCat(u.sg)===LF.br)).sort((a,b)=>(BRD.t1.uf[b.sg].t)-(BRD.t1.uf[a.sg].t));
   const bd=bci>=0?brCD(T,bci):null;if(bd)L.sort((a,b)=>bd.uf[b.sg].v-bd.uf[a.sg].v);
@@ -1060,7 +1092,7 @@ function bmAfter(){const on=brGeo==='mun';
       (f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu aqui; no 2º turno, ${f.para.n}.</span></p>`:'')+
       (brT==='t2'&&r1&&r1.t?`<p class="cmp">1º turno aqui: ${BRD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>BRD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
       (bci>=0&&o&&o.t?(()=>{const j=o.c.findIndex(z=>z[0]===bci),v=j<0?0:o.c[j][1];return `<p class="cl">${av(T.cands[bci],'pres','sm')}<span><b>${T.cands[bci].n}</b>: ${fmt.format(v)} votos (${pf(v/o.t)})${j>=0?`, ${j+1}º lugar`:''}</span></p>`;})():'')+
-      (!o||!o.t?'<p class="hint">Ainda sem urnas apuradas neste município.</p>':diffRows(T.cands,o)+brRows(T,o))+(brT==='t2'&&o&&o.a>=100?ganhoHTML('aqui',T.cands,o,BRD.t1.cands,r1):'')+
+      (!o||!o.t?'<p class="hint">Ainda sem urnas apuradas neste município.</p>':diffRows(T.cands,o)+brRows(T,o))+(brT==='t2'&&o&&o.a>=100?ganhoHTML('aqui',T.cands,o,BRD.t1.cands,r1,'',`${g[1]} (${g[0]})`,`Fonte: TSE, resultado oficial${BM.t2&&BM.t2.dg?` (${BM.t2.dg} às ${BM.t2.hg})`:''}.`):'')+
       `<button class="back" data-bmuf>Ver ${ufName[g[0]]} inteiro</button>`;}
   else if(scope){const n=Object.values(keep).reduce((s,x)=>s+x,0)+Object.values(flips).reduce((s,x)=>s+x,0);
     const parts=T.cands.map(x=>[x,(keep[x.nr]||0)+(flips[x.nr]||0)]).filter(z=>z[1]).sort((a,b)=>b[1]-a[1]).map(([x,c])=>`${x.n} venceu em <b>${fmt.format(c)}</b>`);
@@ -1281,16 +1313,16 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.getElementById('mdlnote').textContent=(mdT==='t2'?'Mais votado em cada país (número de países). Verde: era de Lula no 1º turno e agora deu Flávio Bolsonaro. Laranja: era de Flávio e agora deu Lula.':'Mais votado em cada país no 1º turno (número de países). Cor mais forte, vantagem maior.')+' Países pequenos aparecem como bolinhas.';
   {const k=lfDecorate('md',document.getElementById('mdlegend'),document.getElementById('mdlnote'));mdpaths.classed('off',f=>!!k&&mdIn(f.properties.a3)&&mdCat(f.properties.a3)!==k);mddots.classed('off',d=>!!k&&mdCat(d[0])!==k);}
   const det=document.getElementById('mddetail');
-  if(!mdSel)det.innerHTML=`<p class="hint">Toque num país do mapa ou escolha um na lista abaixo. Os países pequenos aparecem como bolinhas no mapa.</p>`+(mdT==='t2'&&T.meta.final?ganhoHTML('no exterior',T.cands,totO(T.cands),WD.t1.cands,totO(WD.t1.cands)):'');
+  if(!mdSel)det.innerHTML=`<p class="hint">Toque num país do mapa ou escolha um na lista abaixo. Os países pequenos aparecem como bolinhas no mapa.</p>`+(mdT==='t2'&&T.meta.final?ganhoHTML('no exterior',T.cands,totO(T.cands),WD.t1.cands,totO(WD.t1.cands),'','Exterior',`Fonte: TSE, resultado oficial${T.meta.dg?` (${T.meta.dg} às ${T.meta.hg})`:''}.`):'');
   else if(buFor(mdSel)){const b=buFor(mdSel),r1=WD.t1.pa[mdSel],bf=buFlip(mdSel,b);
     det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · 2º turno · brasileiros que votam neste país</p>`+(bf?`<p class="flip" style="border-color:${flipCol(bf.para.nr)}"><i class="chip" style="${buSwF(bf.para)}"></i><span><b>Virou, pelo boletim:</b> no 1º turno ${bf.de.n} venceu aqui; agora, ${bf.para.n}.</span></p>`:'')+`
      <p class="bubox"><span class="butag">Não oficial</span> Soma de boletins de urna divulgados pela imprensa${b.secoes?` (${b.secoes})`:''}${b.fonte?`. Fonte: ${esc(b.fonte)}`:''}${b.hora?`, ${esc(b.hora)}`:''}. O resultado oficial do TSE aparece a partir das 17h de Brasília.</p>`+
-     (r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+diffRows(T.cands,b,r1&&r1.t?varTxt('aqui',b.t,r1.t):'')+mdRows(T,b)+ganhoHTML('aqui',T.cands,b,WD.t1.cands,r1,`<span class="butag">Não oficial</span> Conta feita com os boletins de urna divulgados pela imprensa${b.secoes?` (${esc(b.secoes)})`:''}. Se ainda faltar alguma seção, os números mudam com o resultado oficial.`);}
+     (r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+diffRows(T.cands,b,r1&&r1.t?varTxt('aqui',b.t,r1.t):'')+mdRows(T,b)+ganhoHTML('aqui',T.cands,b,WD.t1.cands,r1,`<span class="butag">Não oficial</span> Conta feita com os boletins de urna divulgados pela imprensa${b.secoes?` (${esc(b.secoes)})`:''}. Se ainda faltar alguma seção, os números mudam com o resultado oficial.`,WD.n[mdSel],`Fonte: ${b.fonte?b.fonte+', com ':''}boletins de urna do TSE divulgados até ${b.hora||BU.atualizado||''} de 25/10/2026, horário de Brasília.`);}
   else{const o=T.pa[mdSel],f=mdFlip(mdSel),r1=WD.t1.pa[mdSel];
     det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · ${mdT==='t1'?'1º turno':'2º turno'} · brasileiros que votam neste país${o&&o.w!==null&&!T.meta.final&&o.a<100?` · ${o.a.toLocaleString('pt-BR',{maximumFractionDigits:1})}% das seções apuradas`:''}</p>`+
       (f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu aqui; no 2º turno, ${f.para.n}.</span></p>`:'')+
       (mdT==='t2'&&r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
-      (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o,mdT==='t2'&&o.a>=100&&r1&&r1.t?varTxt('aqui',o.t,r1.t):'')+mdRows(T,o)+(mdT==='t2'&&(o.a>=100||T.meta.final)?ganhoHTML('aqui',T.cands,o,WD.t1.cands,r1):''));}
+      (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o,mdT==='t2'&&o.a>=100&&r1&&r1.t?varTxt('aqui',o.t,r1.t):'')+mdRows(T,o)+(mdT==='t2'&&(o.a>=100||T.meta.final)?ganhoHTML('aqui',T.cands,o,WD.t1.cands,r1,'',WD.n[mdSel],`Fonte: TSE, resultado oficial${T.meta.dg?` (${T.meta.dg} às ${T.meta.hg})`:''}.`):''));}
   const q=norm(document.getElementById('mdq').value.trim());
   const L=Object.keys(WD.n).filter(a=>(!q||norm(WD.n[a]).includes(q))&&(!LF.md||mdCat(a)===LF.md)).sort((a,b)=>(buFor(b)?1:0)-(buFor(a)?1:0)||((WD.t1.pa[b]||{}).t||0)-((WD.t1.pa[a]||{}).t||0)||WD.n[a].localeCompare(WD.n[b]));
   document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a],bu=buFor(a);const right=bu?(x=>`<i class="chip" style="${buFlip(a,bu)?buSwF(x):buSw(x)}"></i>${x.n} ${pf(bu.c[0][1]/bu.t)}${adv(bu)} · boletim${buFlip(a,bu)?' · virou':''}`)(T.cands[bu.w]):!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}${adv(o)}`)(T.cands[o.w]);
