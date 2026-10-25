@@ -978,7 +978,7 @@ function render(){loadFotos(cur.k);if(!(sel&&mode==='r'))zoomK=null;
   else{sel=null;zoomK=null;applyView();hilite([]); if(cand!==null)candProfile();
     else detail.innerHTML=`<p class="hint">Toque ou passe o mouse ${mode==='m'?'num município':'numa regional'} do mapa, ou escolha ${mode==='m'?'um':'uma'} na lista abaixo. Para ver onde um candidato foi votado, busque pelo nome ou número acima.</p>`+p2Gw(null);}}
 const H1=document.querySelector('h1').textContent;
-function showView(v){if(v===true)v='br';if(v===false)v='pa';
+function showView(v){if(v===true)v='br';if(v===false)v='pa';try{if(LIVE.on&&!DEMO)setTimeout(livePoll,300);}catch(e){}
   document.querySelector('h1').textContent=v==='br'?'Brasil 2026, estado por estado':v==='md'?'Mundo 2026, país por país':v==='cp'?'Capanema, eleição a eleição':H1;
   document.getElementById('paview').hidden=v!=='pa';document.getElementById('brview').hidden=v!=='br';document.getElementById('mdview').hidden=v!=='md';document.getElementById('cpview').hidden=v!=='cp';
   document.querySelector('.lede').textContent=v==='br'?'Presidente, estado por estado. A cor é a de quem foi o mais votado; quanto mais forte, maior a vantagem. No 2º turno, verde e laranja marcam os estados que mudaram de lado em relação ao 1º turno.':
@@ -1459,8 +1459,14 @@ document.getElementById('mdlist').addEventListener('click',e=>{const el=e.target
 document.getElementById('mdlist').addEventListener('keydown',e=>{const el=e.target.closest('.li');if(el&&e.key==='Enter')mdSelect(el.dataset.a3);});
 document.getElementById('mdq').addEventListener('input',renderMD);
 document.querySelectorAll('#mdturn button').forEach(b=>b.onclick=()=>{mdT=b.dataset.t;saveHash();renderMD();});
-async function pollMD(full){try{const T=WD.t2;const zz=await getJ(`${TSE}zz/zz-c0001-${EC}-u.json`);const cv=tseCands(zz);
+// se o arquivo do exterior for recusado pelo TSE, usa o total do exterior que veio na leitura do Brasil
+function mdFromBR(){const o=BRD.t2.uf.ZZ,T=WD.t2;if(!o||!o.t)return false;
+  T.cands.forEach(x=>{const ci=BRD.t2.cands.findIndex(y=>y.nr===x.nr),e=o.c.find(z=>z[0]===ci);x.v=e?e[1]:0;});
+  T.meta={...BRD.t2.meta,pst:o.a,final:o.a>=100&&BRD.t2.meta.final};mdPrep(T);return true;}
+let mdOK=false;
+async function pollMD(full){mdOK=false;try{const T=WD.t2;const zz=await getJ(`${TSE}zz/zz-c0001-${EC}-u.json`);mdOK=true;const cv=tseCands(zz);
   T.meta=tseMeta(zz);T.cands.forEach(x=>{if(cv[x.nr])x.v=cv[x.nr].v;});
+  if(full){mdPrep(T);if(cur.k==='mundo'){LIVE.on=true;LIVE.last=new Date();renderMD();}}
   if(full){const cds=Object.keys(WD.city),acc={},ap={};
     const rs=await pool(cds,5,cd=>getJ(`${TSE}zz/zz${cd}-c0001-${EC}-u.json`));
     rs.forEach((d,i)=>{if(!d)return;const a3=WD.city[cds[i]],v=tseCands(d);const o=acc[a3]=acc[a3]||{};T.cands.forEach((x,ci)=>{o[ci]=(o[ci]||0)+(v[x.nr]?v[x.nr].v:0);});
@@ -1584,6 +1590,7 @@ async function pollBR(){const T=BRD.t2;const nat=await getJ(`${TSE}br/br-c0001-$
   brPrep(T);}
 async function pollPA(full){const c=D.cargos.find(x=>x.k==='p2');const st=await getJ(`${TSE}pa/pa-c0001-${EC}-u.json`);const cv=tseCands(st);
   c.meta=tseMeta(st);c.cands.forEach(x=>{if(cv[x.nr]){x.v=cv[x.nr].v;x.e=/^eleito/i.test(cv[x.nr].st);x.t2=false;}});
+  if(full){c.tot=c.cands.reduce((s,x)=>s+x.v,0);if(cur.k==='p2'){LIVE.on=true;LIVE.last=new Date();try{render();}catch(e){}}}
   if(full){const cds=Object.keys(TSEMAP);
     const rs=await pool(cds,5,cd=>getJ(`${TSE}pa/pa${cd}-c0001-${EC}-u.json`));
     rs.forEach((d,i)=>{if(!d)return;const id=TSEMAP[cds[i]],v=tseCands(d);
@@ -1593,22 +1600,19 @@ async function pollPA(full){const c=D.cargos.find(x=>x.k==='p2');const st=await 
       const l=Object.entries(acc).map(([ci,v])=>[+ci,v]).sort((a,b)=>b[1]-a[1]);return {t:l.reduce((s,z)=>s+z[1],0),c:l};});}
   prepCargo(c);c._cd=null;}
 async function livePoll(){if(LIVE.busy||document.hidden)return;LIVE.busy=true;
-  try{const full=DEMO?true:Date.now()-LIVE.lastMun>110000;
-    const show=()=>{LIVE.on=true;LIVE.wait=false;LIVE.last=new Date();if(cur.k==='br')renderBR();else if(cur.k==='mundo')renderMD();else if(cur.k==='p2')render();};
-    await pollBR();show();
-    // a aba aberta primeiro, para os números aparecerem logo
-    if(cur.k==='mundo'){await pollMD(full);show();await pollPA(full);}else{await pollPA(full);show();await pollMD(full);}
-    if(full)LIVE.lastMun=Date.now();
-    LIVE.on=true;LIVE.wait=false;LIVE.last=new Date();
-    if(cur.k==='br')renderBR();else if(cur.k==='mundo')renderMD();else if(cur.k==='p2')render();
-    if(DEMO){if(DEMO.t0===null)DEMO.t0=Date.now();if(DEMO.p<1)setTimeout(livePoll,3000);}else setTimeout(livePoll,60000);}
-  catch(e){LIVE.busy=false;
-    if(e.status===404){LIVE.on=true;LIVE.wait=true;LIVE.last=new Date();if(cur.k==='br')renderBR();else if(cur.k==='p2')render();setTimeout(livePoll,120000);} // apuração ainda não começou
-    else if(e.status){setTimeout(livePoll,LIVE.on?20000:4000);} // TSE congestionado (429/403/5xx): tenta de novo logo
-    else{LIVE.fails=(LIVE.fails||0)+1;if(!LIVE.on&&LIVE.fails>=4)LIVE.blocked=true; // sem acesso ao TSE (ex.: dentro do claude.ai)
-      else setTimeout(livePoll,LIVE.on?30000:15000);}
-    return;}
-  LIVE.busy=false;}
+  // cada leitura é independente: se o TSE recusar uma (429), as outras continuam e a tela já mostra o que chegou
+  const now=Date.now(),fPA=DEMO?true:cur.k==='p2'&&now-(LIVE.lastPA||0)>110000,fMD=DEMO?true:cur.k==='mundo'&&now-(LIVE.lastMD||0)>110000;
+  const show=()=>{LIVE.on=true;LIVE.wait=false;LIVE.last=new Date();if(cur.k==='br')renderBR();else if(cur.k==='mundo')renderMD();else if(cur.k==='p2')render();};
+  let ok=0,err=null;const run=async f=>{try{await f();ok++;show();}catch(e){err=e;}};
+  const jobs=cur.k==='mundo'?[()=>pollMD(fMD),pollBR,async()=>{if(!mdOK&&!mdFromBR())throw new Error('sem exterior');},()=>pollPA(false)]:cur.k==='p2'?[()=>pollPA(fPA),pollBR,()=>pollMD(false)]:[pollBR,()=>pollPA(false),()=>pollMD(false)];
+  for(const f of jobs)await run(f);
+  LIVE.busy=false;
+  if(ok){if(fPA)LIVE.lastPA=Date.now();if(fMD)LIVE.lastMD=Date.now();
+    if(DEMO){if(DEMO.t0===null)DEMO.t0=Date.now();if(DEMO.p<1)setTimeout(livePoll,3000);}else setTimeout(livePoll,err?30000:60000);return;}
+  if(err&&err.status===404){LIVE.on=true;LIVE.wait=true;LIVE.last=new Date();if(cur.k==='br')renderBR();else if(cur.k==='p2')render();setTimeout(livePoll,120000);} // apuração ainda não começou
+  else if(err&&err.status){setTimeout(livePoll,LIVE.on?20000:5000);} // TSE congestionado (429/403/5xx): tenta de novo logo
+  else{LIVE.fails=(LIVE.fails||0)+1;if(!LIVE.on&&LIVE.fails>=4)LIVE.blocked=true; // sem acesso ao TSE (ex.: dentro do claude.ai)
+    else setTimeout(livePoll,LIVE.on?30000:15000);}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&LIVE.on&&LIVE.last&&Date.now()-LIVE.last>65000)livePoll();});
 setTimeout(livePoll,1500);
 
