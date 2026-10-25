@@ -278,6 +278,10 @@ body:has(dialog[open]){overflow:hidden}
 @media (max-width:560px){.gbtn{float:none;display:block;width:100%;margin:0 0 12px}}
 dialog.mdl:has(.gbody){width:min(760px,calc(100vw - 24px))}
 .gbody .gh{font-size:.98rem;font-weight:700;margin:12px 0 2px}
+.gsvg .gsel{fill:color-mix(in srgb,var(--line) 55%,transparent)}
+.ginfo p{margin:2px 0}
+.ginfo .chip{margin-right:6px}
+.trbtn{margin-top:8px}
 .glg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.82rem;color:var(--muted);margin:2px 0 4px}
 .glg span{display:inline-flex;align-items:center;gap:5px}.glg i{display:inline-block;width:11px;height:11px;border-radius:3px}
 .glg .gho{border:2px solid var(--muted);border-radius:50%;width:8px;height:8px}
@@ -1325,6 +1329,51 @@ function buGanho(){const T=WD.t2,C=T.cands,o2={c:C.map((x,i)=>[i,0]),t:0},o1={c:
   for(const a in WD.n){const b=buFor(a),r=WD.t1.pa[a];if(!b||!r||!r.t)continue;n++;b.c.forEach(([ci,v])=>{o2.c[ci][1]+=v;o2.t+=v;});r.c.forEach(([ci,v])=>{o1.c[ci][1]+=v;o1.t+=v;});if(b.hora&&b.hora>ult)ult=b.hora;}
   if(n<2)return '';
   return `<p class="gwh">Soma dos ${n} países que já têm boletim de urna</p>`+ganhoHTML('nesses países',C,o2,WD.t1.cands,o1,`<span class="butag">Não oficial</span> Conta feita com os boletins de urna divulgados pela imprensa, comparados com o 1º turno desses mesmos ${n} países. Se ainda faltar alguma seção, os números mudam com o resultado oficial.`,`Exterior, ${n} países`,`Fonte: boletins de urna do TSE divulgados pela imprensa até ${ult||BU.atualizado||''} de 25/10/2026, horário de Brasília; soma de ${n} países.`);}
+// ======== Mundo: trajetória de Lula e Flávio conforme os países entram (boletins de urna) ========
+let trM='p',trSel=null;
+function trSerie(){const P=(BU&&BU.paises)||{},g={};
+  for(const a in P){if(!(a in WD.n))continue;const h=P[a].hora||'';if(!/^\d\d:\d\d$/.test(h))continue;(g[h]=g[h]||[]).push(a);}
+  let v13=0,v22=0,n=0;return Object.keys(g).sort().map(h=>{g[h].sort((a,b)=>WD.n[a].localeCompare(WD.n[b])).forEach(a=>{const c=P[a].c||{};v13+=+c['13']||0;v22+=+c['22']||0;n++;});
+    return {h,m:+h.slice(0,2)*60+ +h.slice(3),ps:g[h].map(a=>WD.n[a]),v13,v22,n};});}
+function trGrafHTML(){const R=trSerie(),C=WD.t2.cands,cL=C.find(x=>x.nr==='13'),cF=C.find(x=>x.nr==='22'),colL=pcol(cL.p),colF=pcol(cF.p);
+  const head=`<div class="mdl-h"><div><h2>Exterior: a trajetória pelos boletins</h2><p class="sub">Lula e Flávio Bolsonaro, somando os países na ordem em que os boletins de urna foram divulgados (não oficial)</p></div><button class="mdl-x" aria-label="Fechar">×</button></div>`;
+  if(R.length<2)return head+`<div class="mdl-b gbody"><p class="hint">Ainda há poucos boletins para desenhar a trajetória.</p></div>`;
+  if(trSel===null||trSel>=R.length)trSel=R.length-1;
+  const W=Math.max(320,Math.min(680,window.innerWidth-60)),cmp=W<520,H=300,L=cmp?40:52,Rr=cmp?70:96,T=18,B=34;
+  const x=d3.scaleLinear().domain([R[0].m-10,R[R.length-1].m+10]).range([L,W-Rr]);
+  const val=(r,k)=>trM==='p'?(k==='13'?r.v13:r.v22)/((r.v13+r.v22)||1):(k==='13'?r.v13:r.v22);
+  const all=R.flatMap(r=>[val(r,'13'),val(r,'22')]);
+  const y=trM==='p'?d3.scaleLinear().domain([Math.max(0,Math.floor((Math.min(...all,.5)-.04)*10)/10),Math.min(1,Math.ceil((Math.max(...all,.5)+.04)*10)/10)]).range([H-B,T])
+                   :d3.scaleLinear().domain([0,Math.max(...all)]).nice().range([H-B,T]);
+  const yf=v=>trM==='p'?Math.round(v*100)+'%':v>=1000?(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil':String(v);
+  let s=`<svg class="gsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Linhas de Lula e Flávio Bolsonaro ${trM==='p'?'em porcentagem dos votos':'em votos somados'} conforme os países entram">`;
+  for(const k of y.ticks(trM==='p'?6:5))s+=`<line x1="${L}" x2="${W-Rr+8}" y1="${y(k)}" y2="${y(k)}" class="gg"/><text x="${L-6}" y="${y(k)+4}" text-anchor="end" class="gx">${yf(k)}</text>`;
+  if(trM==='p')s+=`<line x1="${L}" x2="${W-Rr+8}" y1="${y(.5)}" y2="${y(.5)}" stroke="currentColor" stroke-opacity=".45" stroke-dasharray="4 4"/>`;
+  const h0=Math.ceil((R[0].m-10)/120)*2,h1=Math.floor((R[R.length-1].m+10)/60);for(let h=h0;h<=h1;h+=cmp?4:2)s+=`<text x="${x(h*60)}" y="${H-12}" text-anchor="middle" class="gx">${String(h).padStart(2,'0')}h</text>`;
+  const sel=R[trSel];s+=`<rect x="${x(sel.m)-6}" y="${T}" width="12" height="${H-B-T}" class="gsel" rx="3"/>`;
+  for(const [k,col] of [['22',colF],['13',colL]]){s+=`<polyline fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round" points="${R.map(r=>`${x(r.m)},${y(val(r,k))}`).join(' ')}"/>`;
+    R.forEach((r,i)=>s+=`<circle cx="${x(r.m)}" cy="${y(val(r,k))}" r="${i===trSel?5.5:3.2}" fill="${col}" stroke="var(--panel)" stroke-width="1.5"/>`);}
+  const last=R[R.length-1];let yl=y(val(last,'13')),yfv=y(val(last,'22'));if(Math.abs(yl-yfv)<18){const m=(yl+yfv)/2,sg=yl<yfv?-1:1;yl=m+sg*9;yfv=m-sg*9;}
+  const lv=k=>trM==='p'?pf(val(last,k)):fmt.format(val(last,k));
+  s+=`<text x="${x(last.m)+10}" y="${yl+4}" class="gl">${cmp?'':'Lula '}${lv('13')}</text><text x="${x(last.m)+10}" y="${yfv+4}" class="gl">${cmp?'':'Flávio '}${lv('22')}</text>`;
+  R.forEach((r,i)=>{const a=i?(x(R[i-1].m)+x(r.m))/2:L,b=i<R.length-1?(x(r.m)+x(R[i+1].m))/2:W-Rr+8;s+=`<rect x="${a}" y="${T}" width="${Math.max(2,b-a)}" height="${H-B-T}" class="ghit" data-tr="${i}" tabindex="0" aria-label="${r.h}"/>`;});
+  s+='</svg>';
+  const tt=sel.v13+sel.v22,df=sel.v13-sel.v22,lead=df>=0?cL.n:cF.n;
+  const info=`<div class="ginfo"><p><b>${sel.h}</b> · entr${sel.ps.length>1?'aram':'ou'}: ${sel.ps.join(', ')}</p>
+    <p><i class="chip" style="background:${colL}"></i>${cL.n}: ${fmt.format(sel.v13)} votos · ${pf(sel.v13/(tt||1))}</p><p><i class="chip" style="background:${colF}"></i>${cF.n}: ${fmt.format(sel.v22)} votos · ${pf(sel.v22/(tt||1))}</p>
+    <p>${lead} na frente por ${fmt.format(Math.abs(df))} votos, somando ${sel.n} ${sel.n>1?'países':'país'}.</p></div>`;
+  const tab=`<details class="gtab"><summary>Ver em tabela</summary><table><thead><tr><th>Hora</th><th>Entrou</th><th>${cL.n}</th><th>${cF.n}</th></tr></thead><tbody>${R.map(r=>`<tr><td>${r.h}</td><td>${r.ps.join(', ')}</td><td>${fmt.format(r.v13)} (${pf(r.v13/((r.v13+r.v22)||1))})</td><td>${fmt.format(r.v22)} (${pf(r.v22/((r.v13+r.v22)||1))})</td></tr>`).join('')}</tbody></table></details>`;
+  return head+`<div class="mdl-b gbody"><div class="views" role="group" aria-label="Medida"><button data-trm="p" aria-pressed="${trM==='p'}">% dos votos</button><button data-trm="v" aria-pressed="${trM==='v'}">Votos somados</button></div>
+    <div class="glg"><span><i class="chip" style="background:${colL}"></i>${cL.n}</span><span><i class="chip" style="background:${colF}"></i>${cF.n}</span></div>${s}${info}
+    <p class="lnote">Cada ponto é um horário em que saíram boletins; toque num ponto para ver quais países entraram. Cada país entra com o número mais recente divulgado, no horário da última atualização dele. A partir das 17h valem os números oficiais do TSE.</p>${tab}</div>`;}
+function openTrGraf(){const dlg=document.getElementById('mdl');const draw=()=>{const bd0=dlg.querySelector('.mdl-b'),st=bd0?bd0.scrollTop:0;dlg.innerHTML=trGrafHTML();
+    dlg.querySelector('.mdl-x').onclick=()=>dlg.close();
+    dlg.querySelectorAll('[data-tr]').forEach(el=>{const go=()=>{trSel=+el.dataset.tr;draw();};el.onclick=go;el.onkeydown=e=>{if(e.key==='Enter')go();};el.onmouseenter=()=>{if(matchMedia('(hover:hover)').matches&&trSel!==+el.dataset.tr){trSel=+el.dataset.tr;draw();}};});
+    dlg.querySelectorAll('[data-trm]').forEach(el=>el.onclick=()=>{trM=el.dataset.trm;draw();});
+    const bd=dlg.querySelector('.mdl-b');if(bd)bd.scrollTop=st;};
+  trSel=null;draw();dlg.showModal();dlg.querySelector('.mdl-x').focus();}
+document.addEventListener('click',e=>{if(e.target.closest('[data-trgraf]'))openTrGraf();});
+
 function mdCat(a3){if(!mdIn(a3))return null;const T=WD[mdT],bu=buFor(a3);if(bu)return (buFlip(a3,bu)?'bf:':'b:')+T.cands[bu.w].nr;const o=T.pa[a3];if(!o||o.w===null)return 'n';return (mdFlip(a3)?'f:':'w:')+T.cands[o.w].nr;}
 const buSw=x=>`background:repeating-linear-gradient(45deg,${pcol(x.p)} 0 3px,${mix(pcol(x.p),.22)} 3px 6px)`;
 function mdFlip(a3){if(mdT!=='t2')return null;const o=WD.t2.pa[a3],r=WD.t1.pa[a3];if(!o||o.w===null||!r||r.w===null)return null;
@@ -1366,10 +1415,10 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.getElementById('mddiff').innerHTML=diffHTML(TC,TT)+(mdT==='t2'?mdVar(T):'');
   const bub=document.getElementById('mdbu');
   if(mdT!=='t2'){bub.hidden=true;}
-  else if(OF){bub.hidden=false;bub.className='bubox of';bub.innerHTML=`<span class="dot ok"></span><b>Dados oficiais do TSE.</b> Desde as 17h de Brasília o mapa mostra só os números oficiais, atualizados sozinhos enquanto a apuração avança. Os países das Américas entram depois, à medida que fecham as seções.`;}
+  else if(OF){bub.hidden=false;bub.className='bubox of';bub.innerHTML=`<span class="dot ok"></span><b>Dados oficiais do TSE.</b> Desde as 17h de Brasília o mapa mostra só os números oficiais, atualizados sozinhos enquanto a apuração avança. Os países das Américas entram depois, à medida que fecham as seções.`+(BU&&BU.paises&&Object.keys(BU.paises).length>1?`<br><button class="pbtn trbtn" data-trgraf>Ver como foi a trajetória pelos boletins</button>`:'');}
   else{bub.hidden=false;bub.className='bubox';const bs=BU&&(BU.busca||BU.atualizado);
     bub.innerHTML=`<span class="dot"></span><b>Online:</b> pesquisando boletins de urna na imprensa a cada 30 minutos${bs?` · última busca às ${bs}`:''}${buProx()?` · próxima por volta das ${buProx()}`:''}.<br>`+
-    (BT.n?`<span class="butag">Não oficial</span> <b>Boletins de urna divulgados pela imprensa</b>, em ${BT.n} ${BT.n>1?'países':'país'} ainda sem resultado oficial: ${T.cands.map((x,ci)=>[x,BT.acc[ci]]).sort((a,b)=>b[1]-a[1]).map(([x,v])=>`${x.n} ${fmt.format(v)}`).join(' · ')}${BU.atualizado?` (atualizado às ${BU.atualizado})`:''}.`:`<span class="butag">Não oficial</span> Nenhum boletim de urna divulgado ainda. Os primeiros devem sair na madrugada, quando fecham as seções da Oceania e da Ásia.`)+` <b>A partir das 17h de domingo (25/10), o mapa passa a mostrar os dados oficiais do TSE.</b>`;}
+    (BT.n?`<span class="butag">Não oficial</span> <b>Boletins de urna divulgados pela imprensa</b>, em ${BT.n} ${BT.n>1?'países':'país'} ainda sem resultado oficial: ${T.cands.map((x,ci)=>[x,BT.acc[ci]]).sort((a,b)=>b[1]-a[1]).map(([x,v])=>`${x.n} ${fmt.format(v)}`).join(' · ')}${BU.atualizado?` (atualizado às ${BU.atualizado})`:''}.`:`<span class="butag">Não oficial</span> Nenhum boletim de urna divulgado ainda. Os primeiros devem sair na madrugada, quando fecham as seções da Oceania e da Ásia.`)+` <b>A partir das 17h de domingo (25/10), o mapa passa a mostrar os dados oficiais do TSE.</b>`+(BT.n>1?`<br><button class="pbtn main trbtn" data-trgraf>Ver gráfico: trajetória conforme os países entram</button>`:'');}
   let flips={},keep={},none=0,nbu=0;for(const a3 in WD.n){const o=T.pa[a3];if(buFor(a3)){nbu++;continue;}if(!o||o.w===null){none++;continue;}const f=mdFlip(a3),nr=T.cands[o.w].nr;(f?flips:keep)[nr]=((f?flips:keep)[nr]||0)+1;}
   const nf=Object.values(flips).reduce((s,x)=>s+x,0),np=Object.keys(WD.n).length;
   const m1=WD.t1.meta;
