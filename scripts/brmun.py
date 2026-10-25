@@ -45,7 +45,7 @@ def one(t):
     if d.get("tf") != "s" and pst >= 100: pst = 99.99
     return cdi, (pst, v, d.get("dg"), d.get("hg"))
 
-with ThreadPoolExecutor(16) as ex:
+with ThreadPoolExecutor(8) as ex:
     res = list(ex.map(one, muns))
 new = {cdi: r for cdi, r in res if r}
 for _, (pst, v, dg, hg) in new.items():
