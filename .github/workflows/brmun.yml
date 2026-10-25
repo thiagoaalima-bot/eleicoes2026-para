@@ -1,0 +1,36 @@
+name: Presidente por município (2º turno)
+# Durante a apuração de 25/10/2026 baixa do TSE o resultado de presidente de cada município
+# e grava brmun-t2.json. Cada execução repete a coleta por ~28 minutos, a cada ~3 minutos.
+on:
+  schedule:
+    - cron: "*/30 19-23 25 10 *"   # 16h às 20h59 de Brasília (UTC-3)
+    - cron: "*/30 0-5 26 10 *"     # 21h às 2h59 de Brasília
+  workflow_dispatch:
+concurrency:
+  group: brmun
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  coleta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+      - name: Coletar e publicar
+        run: |
+          git config user.name "thiagoaalima-bot"
+          git config user.email "thiagoa2lima@gmail.com"
+          fim=$(( $(date +%s) + 27*60 ))
+          while [ $(date +%s) -lt $fim ]; do
+            git pull -q --rebase origin main || true
+            python3 scripts/brmun.py 6258 brmun-t2.json || true
+            if ! git diff --quiet -- brmun-t2.json || [ -n "$(git status --porcelain brmun-t2.json)" ]; then
+              git add brmun-t2.json
+              git commit -q -m "Presidente por município, 2º turno ($(TZ=America/Sao_Paulo date +%H:%M))"
+              git push -q origin HEAD:main || (git pull -q --rebase origin main && git push -q origin HEAD:main) || true
+            fi
+            # para quando todos os municípios estiverem 100% apurados
+            python3 -c "import json,sys;m=json.load(open('brmun-t2.json'))['m'];sys.exit(0 if m and all(v[0]>=100 for v in m.values()) else 1)" && break
+            sleep 210
+          done
