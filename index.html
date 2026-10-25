@@ -304,6 +304,7 @@ dialog.mdl:has(.gbody){width:min(760px,calc(100vw - 24px))}
 .gwl span{display:inline-flex;align-items:center;gap:6px}
 .gwn{font-size:.8rem;color:var(--muted);margin:6px 0 0;line-height:1.35}
 .gwbtn{margin-top:12px}
+.gwh{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin:14px 0 -4px}
 .legend [data-lf]{cursor:pointer;border-radius:999px;padding:3px 9px;margin:-3px -9px;transition:opacity .15s,background .15s}
 .legend [data-lf]:hover{background:color-mix(in srgb,var(--line) 45%,transparent)}
 .legend [data-lf]:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
@@ -1247,6 +1248,11 @@ function buPatterns(){let d=mdsvg.select('defs');if(d.empty())d=mdsvg.insert('de
     q.append('rect').attr('width',6).attr('height',6).attr('fill',mix(fc,.22));q.append('rect').attr('width',2.6).attr('height',6).attr('fill',fc);});}
 const buSwF=x=>`background:repeating-linear-gradient(45deg,${flipCol(x.nr)} 0 3px,${mix(flipCol(x.nr),.22)} 3px 6px)`;
 function buFlip(a3,bu){const r=WD.t1.pa[a3];if(!bu||!r||r.w===null)return null;const a=WD.t1.cands[r.w],b=WD.t2.cands[bu.w];return a.nr===b.nr?null:{de:a,para:b};}
+// soma dos países com boletim, comparada com o 1º turno desses mesmos países
+function buGanho(){const T=WD.t2,C=T.cands,o2={c:C.map((x,i)=>[i,0]),t:0},o1={c:WD.t1.cands.map((x,i)=>[i,0]),t:0};let n=0,ult='';
+  for(const a in WD.n){const b=buFor(a),r=WD.t1.pa[a];if(!b||!r||!r.t)continue;n++;b.c.forEach(([ci,v])=>{o2.c[ci][1]+=v;o2.t+=v;});r.c.forEach(([ci,v])=>{o1.c[ci][1]+=v;o1.t+=v;});if(b.hora&&b.hora>ult)ult=b.hora;}
+  if(n<2)return '';
+  return `<p class="gwh">Soma dos ${n} países que já têm boletim de urna</p>`+ganhoHTML('nesses países',C,o2,WD.t1.cands,o1,`<span class="butag">Não oficial</span> Conta feita com os boletins de urna divulgados pela imprensa, comparados com o 1º turno desses mesmos ${n} países. Se ainda faltar alguma seção, os números mudam com o resultado oficial.`,`Exterior, ${n} países`,`Fonte: boletins de urna do TSE divulgados pela imprensa até ${ult||BU.atualizado||''} de 25/10/2026, horário de Brasília; soma de ${n} países.`);}
 function mdCat(a3){if(!mdIn(a3))return null;const T=WD[mdT],bu=buFor(a3);if(bu)return (buFlip(a3,bu)?'bf:':'b:')+T.cands[bu.w].nr;const o=T.pa[a3];if(!o||o.w===null)return 'n';return (mdFlip(a3)?'f:':'w:')+T.cands[o.w].nr;}
 const buSw=x=>`background:repeating-linear-gradient(45deg,${pcol(x.p)} 0 3px,${mix(pcol(x.p),.22)} 3px 6px)`;
 function mdFlip(a3){if(mdT!=='t2')return null;const o=WD.t2.pa[a3],r=WD.t1.pa[a3];if(!o||o.w===null||!r||r.w===null)return null;
@@ -1313,7 +1319,7 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.getElementById('mdlnote').textContent=(mdT==='t2'?'Mais votado em cada país (número de países). Verde: era de Lula no 1º turno e agora deu Flávio Bolsonaro. Laranja: era de Flávio e agora deu Lula.':'Mais votado em cada país no 1º turno (número de países). Cor mais forte, vantagem maior.')+' Países pequenos aparecem como bolinhas.';
   {const k=lfDecorate('md',document.getElementById('mdlegend'),document.getElementById('mdlnote'));mdpaths.classed('off',f=>!!k&&mdIn(f.properties.a3)&&mdCat(f.properties.a3)!==k);mddots.classed('off',d=>!!k&&mdCat(d[0])!==k);}
   const det=document.getElementById('mddetail');
-  if(!mdSel)det.innerHTML=`<p class="hint">Toque num país do mapa ou escolha um na lista abaixo. Os países pequenos aparecem como bolinhas no mapa.</p>`+(mdT==='t2'&&T.meta.final?ganhoHTML('no exterior',T.cands,totO(T.cands),WD.t1.cands,totO(WD.t1.cands),'','Exterior',`Fonte: TSE, resultado oficial${T.meta.dg?` (${T.meta.dg} às ${T.meta.hg})`:''}.`):'');
+  if(!mdSel)det.innerHTML=`<p class="hint">Toque num país do mapa ou escolha um na lista abaixo. Os países pequenos aparecem como bolinhas no mapa.</p>`+(mdT==='t2'&&!T.meta.final?buGanho():'')+(mdT==='t2'&&T.meta.final?ganhoHTML('no exterior',T.cands,totO(T.cands),WD.t1.cands,totO(WD.t1.cands),'','Exterior',`Fonte: TSE, resultado oficial${T.meta.dg?` (${T.meta.dg} às ${T.meta.hg})`:''}.`):'');
   else if(buFor(mdSel)){const b=buFor(mdSel),r1=WD.t1.pa[mdSel],bf=buFlip(mdSel,b);
     det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · 2º turno · brasileiros que votam neste país</p>`+(bf?`<p class="flip" style="border-color:${flipCol(bf.para.nr)}"><i class="chip" style="${buSwF(bf.para)}"></i><span><b>Virou, pelo boletim:</b> no 1º turno ${bf.de.n} venceu aqui; agora, ${bf.para.n}.</span></p>`:'')+`
      <p class="bubox"><span class="butag">Não oficial</span> Soma de boletins de urna divulgados pela imprensa${b.secoes?` (${b.secoes})`:''}${b.fonte?`. Fonte: ${esc(b.fonte)}`:''}${b.hora?`, ${esc(b.hora)}`:''}. O resultado oficial do TSE aparece a partir das 17h de Brasília.</p>`+
