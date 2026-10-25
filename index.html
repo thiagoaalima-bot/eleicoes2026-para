@@ -1187,11 +1187,12 @@ function mdRows(T,o){return o.c.slice(0,6).map(([ci,v])=>{const x=T.cands[ci];re
   `<div class="row"><span></span><span style="color:var(--muted)">Votos válidos</span><span>${fmt.format(o.t)}</span></div>`;}
 function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.querySelectorAll('#mdturn button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===mdT));
-  const cs=[...T.cands].sort((a,b)=>b.v-a.v).slice(0,mdT==='t1'?4:2),max=(cs[0].v/(T.tot||1))||1;
-  document.getElementById('mdtop').innerHTML=cs.map(x=>`<div class="cand nc">${av(x,'pres')}<div class="nm">${x.n} <span class="pt">${x.p} · ${x.nr}</span></div>
-    <div class="num"><span class="pct">${T.tot?pf(x.v/T.tot):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div><div class="track"><span style="width:${T.tot?x.v/T.tot/max*100:0}%;background:${pcol(x.p)}"></span></div></div>`).join('');
-  document.getElementById('mddiff').innerHTML=diffHTML(T.cands,T.tot);
   const BT=mdT==='t2'?buTot():{n:0},OF=Date.now()>=BU_FIM;
+  const UB=mdT==='t2'&&!T.tot&&BT.n>0,TC=UB?T.cands.map((x,ci)=>Object.assign({},x,{v:BT.acc[ci]})):T.cands,TT=UB?BT.acc.reduce((s,v)=>s+v,0):T.tot;
+  const cs=[...TC].sort((a,b)=>b.v-a.v).slice(0,mdT==='t1'?4:2),max=(cs[0].v/(TT||1))||1;
+  document.getElementById('mdtop').innerHTML=(UB?`<p class="bubox" style="margin:0 0 8px"><span class="butag">Não oficial</span> Soma dos boletins de urna divulgados pela imprensa em ${BT.n} ${BT.n>1?'países':'país'}. Não é o resultado do TSE.</p>`:'')+cs.map(x=>`<div class="cand nc">${av(x,'pres')}<div class="nm">${x.n} <span class="pt">${x.p} · ${x.nr}</span></div>
+    <div class="num"><span class="pct">${TT?pf(x.v/TT):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div><div class="track"><span style="width:${TT?x.v/TT/max*100:0}%;background:${UB?`repeating-linear-gradient(45deg,${pcol(x.p)} 0 3px,${mix(pcol(x.p),.22)} 3px 6px)`:pcol(x.p)}"></span></div></div>`).join('');
+  document.getElementById('mddiff').innerHTML=diffHTML(TC,TT);
   const bub=document.getElementById('mdbu');
   if(mdT!=='t2'){bub.hidden=true;}
   else if(OF){bub.hidden=false;bub.className='bubox of';bub.innerHTML=`<span class="dot ok"></span><b>Dados oficiais do TSE.</b> Desde as 17h de Brasília o mapa mostra só os números oficiais, atualizados sozinhos enquanto a apuração avança. Os países das Américas entram depois, à medida que fecham as seções.`;}
@@ -1227,7 +1228,7 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
       (mdT==='t2'&&r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
       (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o)+mdRows(T,o));}
   const q=norm(document.getElementById('mdq').value.trim());
-  const L=Object.keys(WD.n).filter(a=>!q||norm(WD.n[a]).includes(q)).sort((a,b)=>((WD.t1.pa[b]||{}).t||0)-((WD.t1.pa[a]||{}).t||0)||WD.n[a].localeCompare(WD.n[b]));
+  const L=Object.keys(WD.n).filter(a=>!q||norm(WD.n[a]).includes(q)).sort((a,b)=>(buFor(b)?1:0)-(buFor(a)?1:0)||((WD.t1.pa[b]||{}).t||0)-((WD.t1.pa[a]||{}).t||0)||WD.n[a].localeCompare(WD.n[b]));
   document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a],bu=buFor(a);const right=bu?(x=>`<i class="chip" style="${buSw(x)}"></i>${x.n} ${pf(bu.c[0][1]/bu.t)}${adv(bu)} · boletim`)(T.cands[bu.w]):!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}${adv(o)}`)(T.cands[o.w]);
     return `<div class="li${a===mdSel?' on':''}" data-a3="${a}" tabindex="0"><span>${WD.n[a]}${o&&o.t?`<span class="sd"> · ${fmt.format(o.t)} votos</span>`:''}</span><span class="w">${right}</span></div>`}).join('')||'<p class="hint">Nenhum país encontrado.</p>';}
 document.getElementById('mdlist').addEventListener('click',e=>{const el=e.target.closest('.li');if(el)mdSelect(el.dataset.a3);});
