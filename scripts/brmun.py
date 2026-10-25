@@ -71,3 +71,12 @@ if json.dumps({**old, "dg": None, "hg": None}, sort_keys=True) != json.dumps({**
     print(f"{len(m)} municípios, {len(new)} baixados agora, dados até {dg} {hg}")
 else:
     print("sem mudanças")
+
+# Na coleta automática do GitHub, também atualiza a cópia de reserva dos totais (live.json) e a deixa pronta para o commit
+if os.environ.get("GITHUB_ACTIONS") and ele == "6258":
+    import subprocess
+    try:
+        subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "live.py"), ele, "live.json"], timeout=240)
+        subprocess.run(["git", "add", "live.json"])
+    except Exception as e:
+        print("live.json falhou:", e)
