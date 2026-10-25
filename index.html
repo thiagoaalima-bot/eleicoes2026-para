@@ -659,6 +659,69 @@ async function deliverBlob(blob,fname,share){const file=new File([blob],fname,{t
   if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fname.replace(/\.\w+$/,'')});return;}catch(e){if(e&&e.name==='AbortError')return;}}
   if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:fname,data:blob});return;}catch(e){if(e&&e.code==='declined')return;}}}
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);}
+// ======== Imagem para compartilhar: resultado (% e votos) + mapa como está na tela ========
+function svgSnapshot(sel,legSel){const root=document.documentElement,prev=root.getAttribute('data-theme');
+  root.setAttribute('data-theme','light');rerender();
+  const leg=[...document.querySelectorAll(legSel+' > span')].map(el=>{const ch=el.querySelector('.chip');if(!ch)return null;const cs=getComputedStyle(ch);const m=(cs.backgroundImage||'').match(/rgb\([^)]*\)/);
+    return {c:m?m[0]:cs.backgroundColor,t:el.textContent.replace(/\s+/g,' ').replace(', boletim não oficial',' (boletim)').trim()};}).filter(Boolean);
+  const svg=document.querySelector(sel),cl=svg.cloneNode(true),src=[svg,...svg.querySelectorAll('*')],dst=[cl,...cl.querySelectorAll('*')];
+  const P=['fill','fill-opacity','stroke','stroke-width','stroke-opacity','stroke-linejoin','opacity','display','visibility','font-size','font-weight','text-anchor','dominant-baseline','paint-order','vector-effect'];
+  src.forEach((el,i)=>{const cs=getComputedStyle(el);let s='';for(const p of P){const v=cs.getPropertyValue(p);if(v)s+=`${p}:${v};`;}dst[i].setAttribute('style',s);dst[i].removeAttribute('class');});
+  dst.forEach(el=>{if(el.tagName==='text')el.setAttribute('font-family','Arial, Helvetica, sans-serif');});
+  if(prev===null)root.removeAttribute('data-theme');else root.setAttribute('data-theme',prev);rerender();
+  cl.setAttribute('xmlns','http://www.w3.org/2000/svg');const vb=svg.viewBox.baseVal;cl.setAttribute('width',vb.width);cl.setAttribute('height',vb.height);
+  return {leg,url:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(cl)),w:vb.width,h:vb.height};}
+function shareData(){const k=cur.k;let o,cands,lugar,cargo,status,fonte,legend,mapSel,unit,naoOf=false;
+  const top=(cs,oo)=>{const L=oo?oo.c.map(([ci,v])=>({x:cs[ci],v})):cs.map(x=>({x,v:x.v}));L.sort((a,b)=>b.v-a.v);return L;};
+  if(k==='br'){const T=BRD[brT];cargo=`Presidente, ${brT==='t1'?'1º':'2º'} turno`;mapSel='#brmap';
+    if(brGeo==='mun'&&brMun&&BM.r[brT][brMun]){o=BM.r[brT][brMun];lugar=`${BM.geo[brMun][1]} (${BM.geo[brMun][0]})`;}
+    else if(brSel&&T.uf[brSel]&&T.uf[brSel].t){o=T.uf[brSel];lugar=ufName[brSel];}else{o=null;lugar='Brasil';}
+    cands=top(T.cands,o);status=T.meta;fonte=`Fonte: TSE${T.meta&&T.meta.dg?`, dados de ${T.meta.dg} às ${T.meta.hg.slice(0,5)}`:''}.`;}
+  else if(k==='mundo'){const T=WD[mdT];cargo=`Presidente, ${mdT==='t1'?'1º':'2º'} turno`;mapSel='#mdmap';const bu=mdSel?buFor(mdSel):null;
+    if(bu){o=bu;lugar=WD.n[mdSel];naoOf=true;}else if(mdSel&&T.pa[mdSel]&&T.pa[mdSel].t){o=T.pa[mdSel];lugar=WD.n[mdSel];}
+    else{o=null;lugar='Exterior';if(mdT==='t2'&&!T.tot&&typeof buTot==='function'){const b=buTot();if(b.n){o={c:b.acc.map((v,ci)=>[ci,v]),t:b.acc.reduce((s,v)=>s+v,0)};naoOf=true;lugar=`Exterior, ${b.n} países com boletim`;}}}
+    cands=top(T.cands,o);status=T.meta;fonte=naoOf?`Fonte: boletins de urna divulgados pela imprensa${BU&&BU.atualizado?`, atualizados às ${BU.atualizado}`:''}. Não oficial.`:`Fonte: TSE${T.meta&&T.meta.dg?`, dados de ${T.meta.dg} às ${T.meta.hg.slice(0,5)}`:''}.`;}
+  else{const c=cur;cargo=cargoNome(c).replace(' · ',', ');mapSel='#map';
+    if(sel&&sel.t==='m'&&c.mun[sel.id]&&c.mun[sel.id].t){o=c.mun[sel.id];lugar=D.nomes[sel.id];}
+    else if(sel&&sel.t==='r'&&c.reg[sel.k].t){o=c.reg[sel.k];lugar='Regional '+D.regs[sel.k].n;}else{o=null;lugar='Pará';}
+    cands=top(c.cands,o);status=c.meta;fonte=`Fonte: TSE${c.meta&&c.meta.dg?`, dados de ${c.meta.dg} às ${String(c.meta.hg).slice(0,5)}`:''}.`;}
+  const tot=o?o.t:cands.reduce((s,z)=>s+z.v,0);
+  const pend=status&&status.pend,parc=status&&!status.final&&!pend&&status.pst<100;
+  return {lugar,cargo,cands:cands.slice(0,k==='br'||k==='mundo'||cur.k==='p2'?2:3),tot,naoOf,parc:parc?status.pst:null,fonte,mapSel,legSel:k==='br'?'#brlegend':k==='mundo'?'#mdlegend':'#legend',foto:k==='br'||k==='mundo'?'pres':k};}
+async function shareImage(){const d=shareData(),W=1080,H=1350,M=72,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+  const F='"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif';try{await Promise.all(['800 60px Archivo','700 36px Archivo','400 26px Archivo'].map(f=>document.fonts.load(f)));}catch(e){}
+  await loadFotos(d.foto);
+  const BG='#F6F4EF',INK='#16231F',MUT='#5C6B66',LINE='#DCE2DE';g.fillStyle=BG;g.fillRect(0,0,W,H);
+  const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();g.fill();};
+  const img=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src;});
+  // cabeçalho
+  g.fillStyle=INK;g.font=`800 46px ${F}`;g.fillText('Eleições 2026',M,100);
+  let y=160;g.font=`700 28px ${F}`;g.fillStyle=MUT;const head=`${d.lugar.toUpperCase()} · ${d.cargo.toUpperCase()}`;g.fillText(head,M,y);
+  const tag=d.naoOf?'NÃO OFICIAL':d.parc!==null?`PARCIAL · ${d.parc.toLocaleString('pt-BR',{maximumFractionDigits:2})}% DAS SEÇÕES`:'';
+  if(tag){g.font=`800 22px ${F}`;const tw=g.measureText(tag).width+22;g.fillStyle=d.naoOf?INK:'#C2413B';rr(M,y+18,tw,34,6);g.fillStyle='#fff';g.fillText(tag,M+11,y+43);y+=50;}
+  // candidatos
+  y+=36;const fotos=await Promise.all(d.cands.map(z=>img(fotoSrc(d.foto,z.x.nr))));const rowH=d.cands.length>2?124:136;
+  for(let i=0;i<d.cands.length;i++){const z=d.cands[i],col=pcol(z.x.p),ph=fotos[i],R=44,cx=M+R,cy=y+R+4;
+    g.save();g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.closePath();g.fillStyle=LINE;g.fill();if(ph){g.clip();const s=Math.max(2*R/ph.width,2*R/ph.height);g.drawImage(ph,cx-ph.width*s/2,cy-R,ph.width*s,ph.height*s);}g.restore();
+    g.lineWidth=5;g.strokeStyle=col;g.beginPath();g.arc(cx,cy,R+1,0,Math.PI*2);g.stroke();
+    const tx=M+2*R+24;g.fillStyle=INK;g.font=`800 38px ${F}`;g.fillText(z.x.n,tx,y+38);g.font=`500 24px ${F}`;g.fillStyle=MUT;g.fillText(`${z.x.p} · ${z.x.nr}`,tx,y+72);
+    g.textAlign='right';g.fillStyle=INK;g.font=`800 56px ${F}`;g.fillText(d.tot?pf(z.v/d.tot):'–',W-M,y+48);g.font=`500 26px ${F}`;g.fillStyle=MUT;g.fillText(`${fmt.format(z.v)} votos`,W-M,y+82);g.textAlign='left';
+    g.fillStyle=LINE;rr(tx,y+96,W-M-tx,10,5);if(d.tot){g.fillStyle=col;rr(tx,y+96,Math.max(10,(W-M-tx)*z.v/d.tot),10,5);}
+    y+=rowH;}
+  if(d.cands.length>=2&&d.tot){const a=d.cands[0],b=d.cands[1],df=a.v-b.v;g.font=`600 28px ${F}`;g.fillStyle=INK;
+    y+=14;g.fillText(`Diferença: ${fmt.format(df)} votos (${((df/d.tot)*100).toLocaleString('pt-BR',{maximumFractionDigits:1})} pontos), ${a.x.n} na frente`,M,y+12);y+=40;}
+  // mapa
+  const snap=svgSnapshot(d.mapSel,d.legSel),mi=await img(snap.url);d.leg=snap.leg;
+  const legH=d.leg.length?Math.ceil(d.leg.length/2)*40+10:0,footH=70,top=y+20,avail=H-top-legH-footH-20;
+  if(mi){const s=Math.min((W-2*M)/snap.w,avail/snap.h),mw=snap.w*s,mh=snap.h*s;g.drawImage(mi,(W-mw)/2,top+(avail-mh)/2,mw,mh);}
+  // legenda do mapa
+  let ly=H-footH-legH+20;g.font=`500 24px ${F}`;
+  d.leg.forEach((l,i)=>{const x=i%2?W/2+10:M,yy=ly+Math.floor(i/2)*40;g.fillStyle=l.c||'#999';
+    rr(x,yy-20,24,24,5);g.fillStyle=INK;let txt=l.t;while(g.measureText(txt).width>W/2-M-50&&txt.length>8)txt=txt.slice(0,-2);if(txt!==l.t)txt+='…';g.fillText(txt,x+34,yy);});
+  g.font=`400 22px ${F}`;g.fillStyle=MUT;g.fillText(d.fonte,M,H-40);
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  const slug=norm(d.lugar+' '+d.cargo).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');return {blob,fname:`eleicoes-2026-${slug}.png`};}
+
 // imagem para redes sociais (1080 x 1350) com o quadro de 100 quadrados
 async function gwImage(d){const W=1080,H=1350,M=80,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
   const F='"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif';try{await Promise.all(['800 70px Archivo','700 36px Archivo','400 28px Archivo'].map(f=>document.fonts.load(f)));}catch(e){}
