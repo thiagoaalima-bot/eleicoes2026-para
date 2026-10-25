@@ -1185,6 +1185,11 @@ function mdStatus(T){const m=T.meta;if(m.pend)return `<b>Votação em 25 de outu
 function mdRows(T,o){return o.c.slice(0,6).map(([ci,v])=>{const x=T.cands[ci];return `<div class="row"><span class="chip" style="background:${pcol(x.p)}"></span><span>${x.n} <span class="pt2">${x.p} · ${x.nr}</span></span><span>${fmt.format(v)} <span class="p">${pf(v/o.t)}</span></span></div>`}).join('')+
   (o.c.length>6?`<div class="row"><span class="chip" style="background:var(--line)"></span><span>Demais candidatos</span><span>${fmt.format(o.t-o.c.slice(0,6).reduce((s,z)=>s+z[1],0))}</span></div>`:'')+
   `<div class="row"><span></span><span style="color:var(--muted)">Votos válidos</span><span>${fmt.format(o.t)}</span></div>`;}
+// 2º turno x 1º turno: votos válidos nos mesmos países (só países com boletim ou com apuração oficial completa)
+function mdVar(T){let n=0,v2=0,v1=0;for(const a3 in WD.n){const r1=WD.t1.pa[a3];if(!r1||!r1.t)continue;const bu=buFor(a3),o=T.pa[a3];let t=0;
+    if(bu)t=bu.t;else if(o&&o.t>0&&o.a>=100)t=o.t;else continue;n++;v2+=t;v1+=r1.t;}
+  if(!n||!v1)return '';const d=v2-v1,pc=(Math.abs(d)/v1*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  return ` Votos válidos ${n>1?`nos ${n} países`:'no país'} já com resultado: <b>${fmt.format(v2)}</b> no 2º turno, contra ${fmt.format(v1)} no 1º turno (${d===0?'mesmo número':`<b>${d>0?'+':'−'}${fmt.format(Math.abs(d))} votos</b>, ${d>0?'alta':'queda'} de ${pc}%`}).`;}
 function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.querySelectorAll('#mdturn button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===mdT));
   const BT=mdT==='t2'?buTot():{n:0},OF=Date.now()>=BU_FIM;
@@ -1192,7 +1197,7 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   const cs=[...TC].sort((a,b)=>b.v-a.v).slice(0,mdT==='t1'?4:2),max=(cs[0].v/(TT||1))||1;
   document.getElementById('mdtop').innerHTML=(UB?`<p class="bubox" style="margin:0 0 8px"><span class="butag">Não oficial</span> Soma dos boletins de urna divulgados pela imprensa em ${BT.n} ${BT.n>1?'países':'país'}. Não é o resultado do TSE.</p>`:'')+cs.map(x=>`<div class="cand nc">${av(x,'pres')}<div class="nm">${x.n} <span class="pt">${x.p} · ${x.nr}</span></div>
     <div class="num"><span class="pct">${TT?pf(x.v/TT):'–'}</span><span class="vv">${fmt.format(x.v)} votos</span></div><div class="track"><span style="width:${TT?x.v/TT/max*100:0}%;background:${UB?`repeating-linear-gradient(45deg,${pcol(x.p)} 0 3px,${mix(pcol(x.p),.22)} 3px 6px)`:pcol(x.p)}"></span></div></div>`).join('');
-  document.getElementById('mddiff').innerHTML=diffHTML(TC,TT);
+  document.getElementById('mddiff').innerHTML=diffHTML(TC,TT)+(mdT==='t2'?mdVar(T):'');
   const bub=document.getElementById('mdbu');
   if(mdT!=='t2'){bub.hidden=true;}
   else if(OF){bub.hidden=false;bub.className='bubox of';bub.innerHTML=`<span class="dot ok"></span><b>Dados oficiais do TSE.</b> Desde as 17h de Brasília o mapa mostra só os números oficiais, atualizados sozinhos enquanto a apuração avança. Os países das Américas entram depois, à medida que fecham as seções.`;}
