@@ -617,8 +617,8 @@ function diffHTML(list,tot,sen){const L=[...list].sort((a,b)=>b.v-a.v);if(!tot||
   const pp=(a,b)=>((a-b)/tot*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   let s=`Diferença do 1º para o 2º: <b>${fmt.format(L[0].v-L[1].v)} votos</b> (${pp(L[0].v,L[1].v)} pontos), ${L[0].n} sobre ${L[1].n}.`;
   if(sen&&L[2])s+=` Do 2º para o 3º, na disputa pela 2ª vaga: <b>${fmt.format(L[1].v-L[2].v)} votos</b> (${pp(L[1].v,L[2].v)} pontos).`;return s;}
-function diffRows(cands,o){if(!o||!o.c||o.c.length<2||!o.t)return '';const a=o.c[0],b=o.c[1];
-  return `<p class="diffl">Diferença do 1º para o 2º aqui: <b>${fmt.format(a[1]-b[1])} votos</b> (${((a[1]-b[1])/o.t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} pontos), ${cands[a[0]].n} sobre ${cands[b[0]].n}.</p>`;}
+function diffRows(cands,o,ex){if(!o||!o.c||o.c.length<2||!o.t)return '';const a=o.c[0],b=o.c[1];
+  return `<p class="diffl">Diferença do 1º para o 2º aqui: <b>${fmt.format(a[1]-b[1])} votos</b> (${((a[1]-b[1])/o.t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} pontos), ${cands[a[0]].n} sobre ${cands[b[0]].n}.${ex||''}</p>`;}
 const isP=()=>cur.k==='pres'||cur.k==='p2';
 const adv=o=>o&&o.c&&o.c[0]?` · +${fmt.format(o.c[0][1]-(o.c[1]?o.c[1][1]:0))} votos`:'';
 const advP=o=>isP()?adv(o):'';
@@ -1188,8 +1188,9 @@ function mdRows(T,o){return o.c.slice(0,6).map(([ci,v])=>{const x=T.cands[ci];re
 // 2º turno x 1º turno: votos válidos nos mesmos países (só países com boletim ou com apuração oficial completa)
 function mdVar(T){let n=0,v2=0,v1=0;for(const a3 in WD.n){const r1=WD.t1.pa[a3];if(!r1||!r1.t)continue;const bu=buFor(a3),o=T.pa[a3];let t=0;
     if(bu)t=bu.t;else if(o&&o.t>0&&o.a>=100)t=o.t;else continue;n++;v2+=t;v1+=r1.t;}
-  if(!n||!v1)return '';const d=v2-v1,pc=(Math.abs(d)/v1*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
-  return ` Votos válidos ${n>1?`nos ${n} países`:'no país'} já com resultado: <b>${fmt.format(v2)}</b> no 2º turno, contra ${fmt.format(v1)} no 1º turno (${d===0?'mesmo número':`<b>${d>0?'+':'−'}${fmt.format(Math.abs(d))} votos</b>, ${d>0?'alta':'queda'} de ${pc}%`}).`;}
+  if(!n)return '';return varTxt(`${n>1?`nos ${n} países`:'no país'} já com resultado`,v2,v1);}
+function varTxt(onde,v2,v1){if(!v1)return '';const d=v2-v1,pc=(Math.abs(d)/v1*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  return ` Votos válidos ${onde}: <b>${fmt.format(v2)}</b> no 2º turno, contra ${fmt.format(v1)} no 1º turno (${d===0?'mesmo número':`<b>${d>0?'+':'−'}${fmt.format(Math.abs(d))} votos</b>, ${d>0?'alta':'queda'} de ${pc}%`}).`;}
 function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   document.querySelectorAll('#mdturn button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===mdT));
   const BT=mdT==='t2'?buTot():{n:0},OF=Date.now()>=BU_FIM;
@@ -1226,12 +1227,12 @@ function renderMD(){loadFotos('pres');loadBU();buPatterns();const T=WD[mdT];
   else if(buFor(mdSel)){const b=buFor(mdSel),r1=WD.t1.pa[mdSel];
     det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · 2º turno · brasileiros que votam neste país</p>
      <p class="bubox"><span class="butag">Não oficial</span> Soma de boletins de urna divulgados pela imprensa${b.secoes?` (${b.secoes})`:''}${b.fonte?`. Fonte: ${esc(b.fonte)}`:''}${b.hora?`, ${esc(b.hora)}`:''}. O resultado oficial do TSE aparece a partir das 17h de Brasília.</p>`+
-     (r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+diffRows(T.cands,b)+mdRows(T,b);}
+     (r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+diffRows(T.cands,b,r1&&r1.t?varTxt('aqui',b.t,r1.t):'')+mdRows(T,b);}
   else{const o=T.pa[mdSel],f=mdFlip(mdSel),r1=WD.t1.pa[mdSel];
     det.innerHTML=`<h2>${WD.n[mdSel]}</h2><p class="sub">Presidente · ${mdT==='t1'?'1º turno':'2º turno'} · brasileiros que votam neste país${o&&o.w!==null&&!T.meta.final&&o.a<100?` · ${o.a.toLocaleString('pt-BR',{maximumFractionDigits:1})}% das seções apuradas`:''}</p>`+
       (f?`<p class="flip" style="border-color:${flipCol(f.para.nr)}"><i class="chip" style="background:${flipCol(f.para.nr)}"></i><span><b>Virou:</b> no 1º turno ${f.de.n} venceu aqui; no 2º turno, ${f.para.n}.</span></p>`:'')+
       (mdT==='t2'&&r1&&r1.t?`<p class="cmp">1º turno aqui: ${WD.t1.cands.filter(x=>x.st==='2º turno').map(x=>{const e=r1.c.find(z=>WD.t1.cands[z[0]].nr===x.nr);return `${x.n} ${pf(e?e[1]/r1.t:0)}`}).join(' · ')}</p>`:'')+
-      (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o)+mdRows(T,o));}
+      (!o||o.w===null?`<p class="hint">${mdT==='t2'&&!T.meta.final?'Ainda sem urnas apuradas neste país.':'Não houve votos apurados neste país.'}</p>`:diffRows(T.cands,o,mdT==='t2'&&o.a>=100&&r1&&r1.t?varTxt('aqui',o.t,r1.t):'')+mdRows(T,o));}
   const q=norm(document.getElementById('mdq').value.trim());
   const L=Object.keys(WD.n).filter(a=>!q||norm(WD.n[a]).includes(q)).sort((a,b)=>(buFor(b)?1:0)-(buFor(a)?1:0)||((WD.t1.pa[b]||{}).t||0)-((WD.t1.pa[a]||{}).t||0)||WD.n[a].localeCompare(WD.n[b]));
   document.getElementById('mdlist').innerHTML=L.map(a=>{const o=T.pa[a],bu=buFor(a);const right=bu?(x=>`<i class="chip" style="${buSw(x)}"></i>${x.n} ${pf(bu.c[0][1]/bu.t)}${adv(bu)} · boletim`)(T.cands[bu.w]):!o||o.w===null?(mdT==='t2'&&!T.meta.final?'aguardando':'sem votos'):(x=>`<i class="chip" style="background:${mdFlip(a)?flipCol(x.nr):pcol(x.p)}"></i>${x.n} ${pf(o.c[0][1]/o.t)}${adv(o)}`)(T.cands[o.w]);
