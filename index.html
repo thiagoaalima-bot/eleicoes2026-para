@@ -1604,7 +1604,7 @@ async function livePoll(){if(LIVE.busy||document.hidden)return;LIVE.busy=true;
     if(DEMO){if(DEMO.t0===null)DEMO.t0=Date.now();if(DEMO.p<1)setTimeout(livePoll,3000);}else setTimeout(livePoll,60000);}
   catch(e){LIVE.busy=false;
     if(e.status===404){LIVE.on=true;LIVE.wait=true;LIVE.last=new Date();if(cur.k==='br')renderBR();else if(cur.k==='p2')render();setTimeout(livePoll,120000);} // apuração ainda não começou
-    else if(e.status){setTimeout(livePoll,20000);} // TSE congestionado (429/403/5xx): tenta de novo logo
+    else if(e.status){setTimeout(livePoll,LIVE.on?20000:4000);} // TSE congestionado (429/403/5xx): tenta de novo logo
     else{LIVE.fails=(LIVE.fails||0)+1;if(!LIVE.on&&LIVE.fails>=4)LIVE.blocked=true; // sem acesso ao TSE (ex.: dentro do claude.ai)
       else setTimeout(livePoll,LIVE.on?30000:15000);}
     return;}
