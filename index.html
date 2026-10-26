@@ -108,6 +108,10 @@ circle.dot{stroke:var(--panel);stroke-width:1;cursor:pointer}
 .gwg{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;max-width:340px}
 .gwg i{aspect-ratio:1;border-radius:2px}
 .gwl{display:flex;gap:14px;font-size:.82rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.ler{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:.88rem}
+.ler h3{font-size:1rem;margin:0 0 6px}
+.ler p{margin:0 0 7px}
+.ler .obs{color:var(--muted);font-size:.78rem}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 footer{color:var(--muted);font-size:.78rem;margin-top:22px}
 footer a{color:var(--muted)}
@@ -201,8 +205,25 @@ function renderRes(){if(!P)return;const k=S.sel,r=cmp(k),el=document.getElementB
     <tr class="sep"><td colspan="4" style="padding:0"></td></tr>
     ${row('Votos válidos',null,a.vv,a.vv/(a.co||1),b.vv,b.vv/(b.co||1),1)}${row('Brancos',null,a.vb,a.vb/(a.co||1),b.vb,b.vb/(b.co||1),1)}${row('Nulos',null,a.vn,a.vn/(a.co||1),b.vn,b.vn/(b.co||1),1)}
     ${row('Comparecimento',null,a.co,a.co/(a.ap||1),b.co,b.co/(b.ap||1),1)}${row('Abstenção',null,a.ab,a.ab/(a.ap||1),b.ab,b.ab/(b.ap||1),1)}
-    </tbody></table>
+    </tbody></table>${leitura(r,k)}
     <div class="acts"><button class="btn" data-share>Compartilhar imagem</button>${k!=='BR'&&k!=='UF:ZZ'?`<button class="btn lt" data-go="${pai(k)||'BR'}">Voltar</button>`:''}</div>`;}
+// leitura didática: de onde vieram os votos e como isso decidiu a eleição neste lugar
+function leitura(r,k){const a=r.a,b=r.b,dC=b.co-a.co,dB=b.vb-a.vb,dN=b.vn-a.vn,dV=b.vv-a.vv,O=r.O1,T=r.gL+r.gF;if(!a.vv||!b.vv)return '';
+  const n=x=>big(Math.abs(x)),ond=k==='BR'?'no Brasil':k==='UF:ZZ'?'no exterior':'aqui';
+  const par=[];
+  if(dC>=0)par.push(`<b>${n(dC)}</b> pessoas a mais foram votar`);else par.push(`<b>${n(dC)}</b> pessoas a menos foram votar`);
+  par.push(dB<=0?`<b>${n(dB)}</b> votos deixaram de ser brancos`:`os brancos aumentaram <b>${n(dB)}</b>`);
+  par.push(dN<=0?`<b>${n(dN)}</b> deixaram de ser nulos`:`os nulos aumentaram <b>${n(dN)}</b>`);
+  const p1=`<p><b>1. Votos válidos ${dV>=0?'cresceram':'caíram'} ${n(dV)}</b> (de ${big(a.vv)} para ${big(b.vv)}): ${par.join('; ')}.</p>`;
+  const p2=`<p><b>2. Votos em disputa entre os dois: ${big(T)}</b>. São os ${big(O)} votos dos outros candidatos no 1º turno ${dV>=0?'mais':'menos'} os ${n(dV)} ${dV>=0?'válidos novos':'válidos a menos'}.</p>`;
+  const sh=x=>T>0?` (${Math.round(x/T*100)}%)`:'';
+  const p3=`<p><b>3. Quem ficou com eles:</b> Lula ${sv(r.gL)} votos${r.gL>0?sh(r.gL):''}; Flávio ${sv(r.gF)} votos${r.gF>0?sh(r.gF):''}.</p>`;
+  const m1=r.L1-r.F1,m2=r.L2-r.F2,w1=m1>=0?L:F,w2=m2>=0?L:F;
+  const p4=`<p><b>4. Resultado:</b> no 1º turno, ${CN[w1].n} estava ${n(m1)} votos à frente; no 2º turno, ${CN[w2].n} venceu por ${n(m2)}.${w1!==w2?` Virou ${ond}.`:Math.abs(m2)>Math.abs(m1)?` A vantagem aumentou.`:` A vantagem diminuiu.`}</p>`;
+  // quanto o perdedor precisaria dos votos em disputa para vencer
+  const lo=w2===L?F:L,Lt1=lo===L?r.L1:r.F1,Wt1=lo===L?r.F1:r.L1,need=(Wt1-Lt1+T)/2,got=lo===L?r.gL:r.gF;let p5='';
+  if(T>0){const sNeed=need/T;p5=sNeed>1?`<p><b>5.</b> Nem com todos os votos em disputa ${CN[lo].n} venceria ${ond}.</p>`:sNeed<=0?'':`<p><b>5.</b> Para ${CN[lo].n} vencer, precisaria de mais de ${big(Math.ceil(need))} desses votos (${Math.ceil(sNeed*100)}%). Ficou com ${big(Math.max(0,got))} (${Math.round(Math.max(0,got)/T*100)}%).</p>`;}
+  return `<div class="ler"><h3>Como a eleição mudou ${ond}</h3>${p1}${p2}${p3}${p4}${p5}<p class="obs">São saldos: o voto é secreto, então não dá para saber o caminho de cada eleitor, só o resultado das trocas.</p></div>`;}
 function gw(r){const gl=r.gL,gf=r.gF;if(gl<=0&&gf<=0)return '';
   if(gl<=0||gf<=0){const w=gl>0?L:F;return `<div class="gw"><p>Do 1º para o 2º turno, só ${CN[w].n} ganhou votos aqui.</p></div>`;}
   const a=Math.min(99,Math.max(1,Math.round(gl/(gl+gf)*100))),A=a>=50?L:F,na=A===L?a:100-a;
