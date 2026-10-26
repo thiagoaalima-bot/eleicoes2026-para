@@ -97,6 +97,8 @@ circle.dot{stroke:var(--panel);stroke-width:1;cursor:pointer}
 .rk th[aria-sort]{color:var(--ink)}
 .rk td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
 .rk td:first-child{text-align:left}
+.rk td small{display:block;font-size:.75rem;opacity:.85}
+.rk td{white-space:nowrap}.rk td:first-child{white-space:normal}
 .rk tr{cursor:pointer}.rk tbody tr:hover{background:var(--soft)}
 .rk .w{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 .rkw{max-height:520px;overflow:auto}
@@ -144,6 +146,8 @@ const UFN={AC:'Acre',AL:'Alagoas',AP:'Amapá',AM:'Amazonas',BA:'Bahia',CE:'Cear�
 const L='13',F='22',CN={'13':{n:'Lula',p:'PT',c:'#C2413B'},'22':{n:'Flávio Bolsonaro',p:'PL',c:'#2F4E9E'}},FLIP={'22':'#2E9B57','13':'#E07B1F'};
 const fmt=new Intl.NumberFormat('pt-BR'),pf=x=>(x*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
 const pp=x=>(x>0?'+':x<0?'−':'')+Math.abs(x*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' p.p.';
+const vp=(dp,dn)=>`${dp>0?'+':dp<0?'−':''}${Math.abs(dp*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}% (${dn<0?'−':''}${fmt.format(Math.abs(dn))})`;
+const vpH=(dp,dn)=>{const s=vp(dp,dn),i=s.indexOf(' (');return `${s.slice(0,i)}<small>${s.slice(i+1)}</small>`;};
 const sv=x=>(x>0?'+':x<0?'−':'')+fmt.format(Math.abs(x));
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const mix=(c,t)=>d3.interpolateRgb(css('--panel'),c)(t);
@@ -299,7 +303,7 @@ function renderRank(){const el=document.getElementById('rank'),k=S.sel;let base=
   const tit=base==='BR'?'Estados':base==='UF:ZZ'?'Países':'Municípios de '+nome(base);
   el.innerHTML=`<div class="hd"><h3>${tit} <span class="sub">(${R.length}${S.lf?', filtrados pela legenda':''})</span></h3><span class="acts" style="margin:0"><button class="btn lt" data-pdf="lista">Gerar PDF da lista</button>${base==='BR'?'<button class="btn lt" data-pdf="todos">PDF de todos os municípios</button>':''}</span></div><p class="sub" style="margin:0 0 6px">Toque no título da coluna para ordenar.</p>
    <div class="rkw"><table class="rk"><thead><tr>${th('n','Nome')}${th('v','Votos válidos','hide-s')}${th('l','Lula 2º t.')}${th('dl','Var. Lula')}${th('df','Var. Flávio')}</tr></thead><tbody>
-   ${R.slice(0,S.lim).map(([x,r])=>`<tr data-go="${x}" ${x===k?'style="background:var(--soft)"':''}><td><i class="w" style="background:${r.flip?FLIP[r.w2]:CN[r.w2].c}"></i>${esc(nome(x))}</td><td class="hide-s">${fmt.format(r.b.vv)}</td><td>${pf(r.l2)}</td><td class="${r.l2-r.l1>=0?'up':'down'}">${pp(r.l2-r.l1)}</td><td class="${r.f2-r.f1>=0?'up':'down'}">${pp(r.f2-r.f1)}</td></tr>`).join('')}
+   ${R.slice(0,S.lim).map(([x,r])=>`<tr data-go="${x}" ${x===k?'style="background:var(--soft)"':''}><td><i class="w" style="background:${r.flip?FLIP[r.w2]:CN[r.w2].c}"></i>${esc(nome(x))}</td><td class="hide-s">${fmt.format(r.b.vv)}</td><td>${pf(r.l2)}</td><td class="${r.l2-r.l1>=0?'up':'down'}">${vpH(r.l2-r.l1,r.gL)}</td><td class="${r.f2-r.f1>=0?'up':'down'}">${vpH(r.f2-r.f1,r.gF)}</td></tr>`).join('')}
    </tbody></table></div>${R.length>S.lim?`<button class="more" data-more>Mostrar mais ${fmt.format(Math.min(200,R.length-S.lim))}</button>`:''}`;}
 
 // ---------- navegação ----------
@@ -393,13 +397,13 @@ async function gerarPDF(btn){const old=btn.textContent;btn.disabled=true;btn.tex
     doc.setFontSize(11);doc.text(tx(titulo),M,21);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(92,107,102);
     if(rb)doc.text(tx(`${nome(base)}: Lula ${pf(rb.l2)} (${fmt.format(rb.L2)} votos, ${d(rb.l2-rb.l1)}) · Flávio ${pf(rb.f2)} (${fmt.format(rb.F2)} votos, ${d(rb.f2-rb.f1)}) · ${CN[rb.w2].n} venceu por ${fmt.format(Math.abs(rb.L2-rb.F2))} votos`),M,27);
     doc.setTextColor(22,35,31);
-    const head=[[todos?'UF':'#','Nome','Lula 1º t.','Lula 2º t.','Votos Lula 2º t.','Var. Lula','Flávio 1º t.','Flávio 2º t.','Votos Flávio 2º t.','Var. Flávio','Brancos+nulos 2º t.','Abstenção 2º t.','Vencedor']];
-    const body=R.map(([x,r],i)=>[todos?NOMES[x.slice(3)][0]:String(i+1),tx(nome(x)),pf(r.l1),pf(r.l2),fmt.format(r.L2),d(r.l2-r.l1),pf(r.f1),pf(r.f2),fmt.format(r.F2),d(r.f2-r.f1),pf((r.b.vb+r.b.vn)/(r.b.co||1)),pf(r.b.ab/(r.b.ap||1)),(r.w2===L?'Lula':'Flávio')+(r.flip?' (virou)':'')]);
+    const head=[[todos?'UF':'#','Nome','Lula 1º t.','Lula 2º t.','Votos Lula 2º t.','Var. Lula','Flávio 1º t.','Flávio 2º t.','Votos Flávio 2º t.','Var. Flávio','Vencedor']];
+    const body=R.map(([x,r],i)=>[todos?NOMES[x.slice(3)][0]:String(i+1),tx(nome(x)),pf(r.l1),pf(r.l2),fmt.format(r.L2),tx(vp(r.l2-r.l1,r.gL)),pf(r.f1),pf(r.f2),fmt.format(r.F2),tx(vp(r.f2-r.f1,r.gF)),(r.w2===L?'Lula':'Flávio')+(r.flip?' (virou)':'')]);
     doc.autoTable({head,body,startY:31,margin:{left:M,right:M,bottom:14},styles:{fontSize:7.5,cellPadding:1.4,textColor:[22,35,31]},headStyles:{fillColor:[22,35,31],textColor:255,fontSize:7.5},
-      alternateRowStyles:{fillColor:[244,247,245]},columnStyles:{0:{cellWidth:9},1:{cellWidth:48},2:{halign:'right'},3:{halign:'right',fontStyle:'bold'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right',fontStyle:'bold'},8:{halign:'right'},9:{halign:'right'},10:{halign:'right'},11:{halign:'right'}},
+      alternateRowStyles:{fillColor:[244,247,245]},columnStyles:{0:{cellWidth:9},1:{cellWidth:56},2:{halign:'right'},3:{halign:'right',fontStyle:'bold'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right',fontStyle:'bold'},8:{halign:'right'},9:{halign:'right'}},
       didParseCell:h=>{if(h.section==='body'&&(h.column.index===5||h.column.index===9)){const v=h.cell.raw;h.cell.styles.textColor=/^-/.test(v)?[178,59,59]:[30,127,79];}
-        if(h.section==='body'&&h.column.index===12){h.cell.styles.textColor=/Lula/.test(h.cell.raw)?[194,65,59]:[47,78,158];if(/virou/.test(h.cell.raw))h.cell.styles.fontStyle='bold';}},
-      didDrawPage:()=>{const n=doc.internal.getNumberOfPages();doc.setFontSize(7.5);doc.setTextColor(92,107,102);doc.text(tx('Fonte: TSE, totalização do 1º e do 2º turno. % de candidatos sobre votos válidos; brancos+nulos sobre o comparecimento; abstenção sobre os aptos. Var. = variação em pontos percentuais do 1º para o 2º turno.'),M,203);doc.text('Página '+n,PW-M,203,{align:'right'});doc.setTextColor(22,35,31);}});
+        if(h.section==='body'&&h.column.index===10){h.cell.styles.textColor=/Lula/.test(h.cell.raw)?[194,65,59]:[47,78,158];if(/virou/.test(h.cell.raw))h.cell.styles.fontStyle='bold';}},
+      didDrawPage:()=>{const n=doc.internal.getNumberOfPages();doc.setFontSize(7.5);doc.setTextColor(92,107,102);doc.text(tx('Fonte: TSE, totalização do 1º e do 2º turno. % de candidatos sobre os votos válidos. Var. = variação do 1º para o 2º turno em pontos percentuais e, entre parênteses, em votos.'),M,203);doc.text('Página '+n,PW-M,203,{align:'right'});doc.setTextColor(22,35,31);}});
     const blob=doc.output('blob'),fn=tx(`Eleicoes 2026 - Presidente - ${todos?'todos os municipios':titulo.replace(/\s*\(.*$/,'')}.pdf`).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\\/:*?"<>|]/g,'');
     const file=new File([blob],fn,{type:'application/pdf'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fn});}catch(e){}}
