@@ -2,12 +2,7 @@ name: Presidente por município (2º turno)
 # Durante a apuração de 25/10/2026 baixa do TSE o resultado de presidente de cada município
 # e grava brmun-t2.json. Cada execução repete a coleta por ~28 minutos, a cada ~3 minutos.
 on:
-  schedule:
-    - cron: "*/30 19-23 25 10 *"   # 16h às 20h59 de Brasília (UTC-3)
-    - cron: "*/30 0-5 26 10 *"     # 21h às 2h59 de Brasília
   workflow_dispatch:
-  push:
-    paths: [".github/brmun-iniciar.txt"]
 concurrency:
   group: brmun
   cancel-in-progress: false
