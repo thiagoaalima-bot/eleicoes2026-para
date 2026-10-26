@@ -201,7 +201,7 @@ function renderRes(){if(!P)return;const k=S.sel,r=cmp(k),el=document.getElementB
     <tr class="sep"><td colspan="4" style="padding:0"></td></tr>
     ${row('Votos válidos',null,a.vv,a.vv/(a.co||1),b.vv,b.vv/(b.co||1),1)}${row('Brancos',null,a.vb,a.vb/(a.co||1),b.vb,b.vb/(b.co||1),1)}${row('Nulos',null,a.vn,a.vn/(a.co||1),b.vn,b.vn/(b.co||1),1)}
     ${row('Comparecimento',null,a.co,a.co/(a.ap||1),b.co,b.co/(b.ap||1),1)}${row('Abstenção',null,a.ab,a.ab/(a.ap||1),b.ab,b.ab/(b.ap||1),1)}
-    </tbody></table>${gw(r)}
+    </tbody></table>
     <div class="acts"><button class="btn" data-share>Compartilhar imagem</button>${k!=='BR'&&k!=='UF:ZZ'?`<button class="btn lt" data-go="${pai(k)||'BR'}">Voltar</button>`:''}</div>`;}
 function gw(r){const gl=r.gL,gf=r.gF;if(gl<=0&&gf<=0)return '';
   if(gl<=0||gf<=0){const w=gl>0?L:F;return `<div class="gw"><p>Do 1º para o 2º turno, só ${CN[w].n} ganhou votos aqui.</p></div>`;}
