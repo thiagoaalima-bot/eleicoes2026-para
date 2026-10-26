@@ -297,7 +297,7 @@ function renderRank(){const el=document.getElementById('rank'),k=S.sel;let base=
   const f=val[S.sort]||val.v;R.sort((a,b)=>{const A=f(a),B=f(b);return (typeof A==='string'?A.localeCompare(B):A-B)*S.dir;});
   const th=(id,t,cls)=>`<th data-sort="${id}" ${S.sort===id?`aria-sort="${S.dir>0?'ascending':'descending'}"`:''} class="${cls||''}">${t}${S.sort===id?(S.dir>0?' ↑':' ↓'):''}</th>`;
   const tit=base==='BR'?'Estados':base==='UF:ZZ'?'Países':'Municípios de '+nome(base);
-  el.innerHTML=`<div class="hd"><h3>${tit} <span class="sub">(${R.length}${S.lf?', filtrados pela legenda':''})</span></h3><span class="sub">Toque no título da coluna para ordenar</span></div>
+  el.innerHTML=`<div class="hd"><h3>${tit} <span class="sub">(${R.length}${S.lf?', filtrados pela legenda':''})</span></h3><span class="acts" style="margin:0"><button class="btn lt" data-pdf="lista">Gerar PDF da lista</button>${base==='BR'?'<button class="btn lt" data-pdf="todos">PDF de todos os municípios</button>':''}</span></div><p class="sub" style="margin:0 0 6px">Toque no título da coluna para ordenar.</p>
    <div class="rkw"><table class="rk"><thead><tr>${th('n','Nome')}${th('v','Votos válidos','hide-s')}${th('l','Lula 2º t.')}${th('dl','Var. Lula')}${th('df','Var. Flávio')}</tr></thead><tbody>
    ${R.slice(0,S.lim).map(([x,r])=>`<tr data-go="${x}" ${x===k?'style="background:var(--soft)"':''}><td><i class="w" style="background:${r.flip?FLIP[r.w2]:CN[r.w2].c}"></i>${esc(nome(x))}</td><td class="hide-s">${fmt.format(r.b.vv)}</td><td>${pf(r.l2)}</td><td class="${r.l2-r.l1>=0?'up':'down'}">${pp(r.l2-r.l1)}</td><td class="${r.f2-r.f1>=0?'up':'down'}">${pp(r.f2-r.f1)}</td></tr>`).join('')}
    </tbody></table></div>${R.length>S.lim?`<button class="more" data-more>Mostrar mais ${fmt.format(Math.min(200,R.length-S.lim))}</button>`:''}`;}
@@ -321,7 +321,8 @@ document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g
   const lf=e.target.closest('[data-lf]');if(lf){S.lf=S.lf===lf.dataset.lf?null:lf.dataset.lf;render();return;}
   const so=e.target.closest('[data-sort]');if(so){if(S.sort===so.dataset.sort)S.dir*=-1;else{S.sort=so.dataset.sort;S.dir=so.dataset.sort==='n'?1:-1;}renderRank();return;}
   if(e.target.closest('[data-more]')){S.lim+=200;renderRank();return;}
-  if(e.target.closest('[data-share]')){share(e.target.closest('[data-share]'));return;}});
+  if(e.target.closest('[data-share]')){share(e.target.closest('[data-share]'));return;}
+  const pd=e.target.closest('[data-pdf]');if(pd){gerarPDF(pd);return;}});
 // busca
 const q=document.getElementById('q'),sug=document.getElementById('sug');let sugs=[],si=-1;
 q.addEventListener('input',()=>{const t=norm(q.value.trim());if(t.length<2){sug.hidden=true;return;}
@@ -373,6 +374,39 @@ async function share(btn){const old=btn.textContent;btn.disabled=true;btn.textCo
     else{let done=false;if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:fn,data:blob});done=true;}catch(e){done=e&&e.code==='declined';}}}
       if(!done){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();}}}
   catch(e){console.error(e);}btn.disabled=false;btn.textContent=old;}
+// ---------- PDF da lista ----------
+let PDFL=null;
+function loadScript(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+function ensurePDF(){return PDFL||(PDFL=loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')));}
+const tx=s=>String(s).replace(/−/g,'-').replace(/→/g,'->');
+function listaAtual(){const k=S.sel;let base=k;if(k.startsWith('MU:'))base=pai(k);if(k.startsWith('PA:'))base='UF:ZZ';let ks=filhos(base);if(S.lf)ks=ks.filter(x=>cat(x)===S.lf);
+  const R=ks.map(x=>[x,cmp(x)]).filter(z=>z[1]&&z[1].b.vv);const val={n:z=>nome(z[0]),v:z=>z[1].b.vv,l:z=>z[1].l2,dl:z=>z[1].l2-z[1].l1,df:z=>z[1].f2-z[1].f1,g:z=>z[1].gs};
+  const f=val[S.sort]||val.v;R.sort((a,b)=>{const A=f(a),B=f(b);return (typeof A==='string'?A.localeCompare(B):A-B)*S.dir;});return {base,R};}
+async function gerarPDF(btn){const old=btn.textContent;btn.disabled=true;btn.textContent='Gerando PDF…';
+  try{await ensurePDF();let base,R,titulo,todos=btn.dataset.pdf==='todos';
+    if(todos){if(!NOMES){btn.textContent='Carregando nomes…';while(!NOMES)await new Promise(r=>setTimeout(r,300));}
+      R=Object.keys(NOMES).filter(c=>P.t2.mu[c]).map(c=>['MU:'+c,cmp('MU:'+c)]).filter(z=>z[1]&&z[1].b.vv).sort((a,b)=>NOMES[a[0].slice(3)][0].localeCompare(NOMES[b[0].slice(3)][0])||nome(a[0]).localeCompare(nome(b[0])));base='BR';titulo=`Todos os municípios do Brasil (${fmt.format(R.length)})`;}
+    else{({base,R}=listaAtual());titulo=(base==='BR'?'Estados':base==='UF:ZZ'?'Exterior, por país':'Municípios de '+nome(base))+` (${R.length})`+(S.lf?' · filtro da legenda':'');}
+    const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true}),PW=297,M=10;
+    const rb=cmp(base),pv=x=>pf(x).replace('%','%'),d=x=>tx(pp(x));
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(tx('Eleições 2026 · Presidente · 1º e 2º turno'),M,14);
+    doc.setFontSize(11);doc.text(tx(titulo),M,21);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(92,107,102);
+    if(rb)doc.text(tx(`${nome(base)}: Lula ${pf(rb.l2)} (${fmt.format(rb.L2)} votos, ${d(rb.l2-rb.l1)}) · Flávio ${pf(rb.f2)} (${fmt.format(rb.F2)} votos, ${d(rb.f2-rb.f1)}) · ${CN[rb.w2].n} venceu por ${fmt.format(Math.abs(rb.L2-rb.F2))} votos`),M,27);
+    doc.setTextColor(22,35,31);
+    const head=[[todos?'UF':'#','Nome','Lula 1º t.','Lula 2º t.','Votos Lula 2º t.','Var. Lula','Flávio 1º t.','Flávio 2º t.','Votos Flávio 2º t.','Var. Flávio','Brancos+nulos 2º t.','Abstenção 2º t.','Vencedor']];
+    const body=R.map(([x,r],i)=>[todos?NOMES[x.slice(3)][0]:String(i+1),tx(nome(x)),pf(r.l1),pf(r.l2),fmt.format(r.L2),d(r.l2-r.l1),pf(r.f1),pf(r.f2),fmt.format(r.F2),d(r.f2-r.f1),pf((r.b.vb+r.b.vn)/(r.b.co||1)),pf(r.b.ab/(r.b.ap||1)),(r.w2===L?'Lula':'Flávio')+(r.flip?' (virou)':'')]);
+    doc.autoTable({head,body,startY:31,margin:{left:M,right:M,bottom:14},styles:{fontSize:7.5,cellPadding:1.4,textColor:[22,35,31]},headStyles:{fillColor:[22,35,31],textColor:255,fontSize:7.5},
+      alternateRowStyles:{fillColor:[244,247,245]},columnStyles:{0:{cellWidth:9},1:{cellWidth:48},2:{halign:'right'},3:{halign:'right',fontStyle:'bold'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right',fontStyle:'bold'},8:{halign:'right'},9:{halign:'right'},10:{halign:'right'},11:{halign:'right'}},
+      didParseCell:h=>{if(h.section==='body'&&(h.column.index===5||h.column.index===9)){const v=h.cell.raw;h.cell.styles.textColor=/^-/.test(v)?[178,59,59]:[30,127,79];}
+        if(h.section==='body'&&h.column.index===12){h.cell.styles.textColor=/Lula/.test(h.cell.raw)?[194,65,59]:[47,78,158];if(/virou/.test(h.cell.raw))h.cell.styles.fontStyle='bold';}},
+      didDrawPage:()=>{const n=doc.internal.getNumberOfPages();doc.setFontSize(7.5);doc.setTextColor(92,107,102);doc.text(tx('Fonte: TSE, totalização do 1º e do 2º turno. % de candidatos sobre votos válidos; brancos+nulos sobre o comparecimento; abstenção sobre os aptos. Var. = variação em pontos percentuais do 1º para o 2º turno.'),M,203);doc.text('Página '+n,PW-M,203,{align:'right'});doc.setTextColor(22,35,31);}});
+    const blob=doc.output('blob'),fn=tx(`Eleicoes 2026 - Presidente - ${todos?'todos os municipios':titulo.replace(/\s*\(.*$/,'')}.pdf`).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\\/:*?"<>|]/g,'');
+    const file=new File([blob],fn,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fn});}catch(e){}}
+    else{let done=false;if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:fn,data:blob});done=true;}catch(e){done=e&&e.code==='declined';}}}
+      if(!done){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();}}}
+  catch(e){console.error(e);alert('Não foi possível gerar o PDF agora.');}
+  btn.disabled=false;btn.textContent=old;}
 init();
 </script>
 </body>
