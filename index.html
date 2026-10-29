@@ -114,9 +114,35 @@ circle.dot{stroke:var(--panel);stroke-width:1;cursor:pointer}
 .ler h3{font-size:1rem;margin:0 0 6px}
 .ler p{margin:0 0 7px}
 .ler .obs{color:var(--muted);font-size:.78rem}
+.lc{border-bottom:1px solid var(--line)}
+.lc>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;padding:8px 2px;align-items:center}
+.lc>summary::-webkit-details-marker{display:none}
+.lc>summary:before{content:'▸';grid-row:1/3;color:var(--muted);transition:transform .15s}
+.lc[open]>summary:before{transform:rotate(90deg)}
+.lc>summary{grid-template-columns:12px 1fr auto auto}
+.lc .ln{font-weight:600}.lc .la{grid-column:2/3;font-size:.78rem;color:var(--muted)}
+.lc .lv{text-align:right;font-variant-numeric:tabular-nums;font-size:.85rem;white-space:nowrap}
+.lc .lv small{display:block;font-size:.75rem;color:var(--muted)}
+.st2{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums;margin:4px 0 10px}
+.st2 th{font-size:.68rem;text-transform:uppercase;color:var(--muted);text-align:right;padding:3px 4px;border-bottom:1px solid var(--line);font-weight:700}
+.st2 th:first-child,.st2 td:first-child{text-align:left}
+.st2 td{padding:5px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.st2 td small{display:block;font-size:.72rem;color:var(--muted)}
+.st2 tr.fl td{background:color-mix(in srgb,#E07B1F 12%,transparent)}
+.flag{display:inline-block;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#fff;background:#E07B1F;border-radius:4px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.vg>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-weight:600}
+.vg>summary::-webkit-details-marker{display:none}
+.vg>summary>span:first-of-type{flex:1;text-align:left}
+.vg>summary:before{content:'▸ ';color:var(--muted)}.vg[open]>summary:before{content:'▾ '}
+.vg .vg>summary{font-weight:500;padding-left:18px}
+.vg .vg .st2{margin-left:18px;width:calc(100% - 18px)}
+.vg>.in{padding-left:10px}
+.cnt{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.obs{color:var(--muted);font-size:.8rem}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 footer{color:var(--muted);font-size:.78rem;margin-top:22px}
 footer a{color:var(--muted)}
+@media (max-width:520px){.lc>summary{grid-template-columns:12px 1fr 1fr}.lc .ln{grid-column:2/4}.lc .lv{text-align:left;grid-row:2}.lc .ln+.lv{grid-column:2}.lc .lv+.lv{grid-column:3}.lc .la{grid-column:2/4;grid-row:3}.lc>summary:before{grid-row:1}.st2{font-size:.76rem}.st2 th,.st2 td{padding:4px 2px}}
 @media (max-width:520px){h2{font-size:1.45rem}.cd .big{font-size:1.75rem}.cmp{font-size:.8rem}.cmp td small{font-size:.7rem}.hide-s{display:none}}
 </style>
 </head>
@@ -124,10 +150,10 @@ footer a{color:var(--muted)}
 <main>
 <header><h1>Presidente 2026</h1><span class="st" id="st">Carregando…</span></header>
 <div class="bar">
-  <div class="seg" role="group" aria-label="Onde"><button data-esc="br" aria-pressed="true">Brasil</button><button data-esc="ex" aria-pressed="false">Exterior</button></div>
+  <div class="seg" role="group" aria-label="Onde"><button data-esc="br" aria-pressed="true">Brasil</button><button data-esc="ex" aria-pressed="false">Exterior</button><button data-esc="vi" aria-pressed="false">Vistoria</button></div>
   <div class="srch"><input id="q" type="search" placeholder="Buscar estado, município ou país" autocomplete="off" aria-label="Buscar estado, município ou país"><div class="sug" id="sug" hidden></div></div>
 </div>
-<div class="grid">
+<div class="grid" id="main">
   <section class="card" id="res" aria-live="polite"></section>
   <section class="card">
     <div class="mtop"><div class="seg" id="geo" role="group" aria-label="Divisão do mapa"><button data-geo="uf" aria-pressed="true">Estados</button><button data-geo="mu" aria-pressed="false">Municípios</button></div>
@@ -137,7 +163,9 @@ footer a{color:var(--muted)}
   </section>
 </div>
 <section class="card rank" id="rank"></section>
-<footer>Fonte: TSE, totalização do 1º turno (4/10/2026) e do 2º turno (25/10/2026). Percentuais de candidatos sobre os votos válidos; brancos, nulos e válidos sobre o comparecimento; comparecimento e abstenção sobre os eleitores aptos. <a href="antigo.html">Versão anterior do site</a></footer>
+<section class="card rank" id="locais" hidden></section>
+<section class="card" id="vist" hidden></section>
+<footer>Fonte: TSE, totalização do 1º turno (4/10/2026) e do 2º turno (25/10/2026); seções: votação por seção eleitoral, dados abertos do TSE (26/10/2026). Percentuais de candidatos sobre os votos válidos; brancos, nulos e válidos sobre o comparecimento; comparecimento e abstenção sobre os eleitores aptos. <a href="antigo.html">Versão anterior do site</a></footer>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script>
@@ -296,7 +324,7 @@ function tipShow(e,key){const r=cmp(key),b=document.getElementById('mapc').getBo
 function tipHide(){tip.style.opacity=0;}
 
 // ---------- ranking ----------
-function renderRank(){const el=document.getElementById('rank'),k=S.sel;let base=k;
+function renderRank(){const el=document.getElementById('rank'),k=S.sel;if(S.esc==='vi'){el.hidden=true;return;}let base=k;
   if(k.startsWith('MU:'))base=pai(k);if(k.startsWith('PA:'))base='UF:ZZ';
   let ks=filhos(base);if(S.lf)ks=ks.filter(x=>cat(x)===S.lf);
   if(!ks.length){el.innerHTML=k.startsWith('UF:')&&!NOMES?'<p class="sub">Carregando municípios…</p>':'';el.hidden=!el.innerHTML;return;}el.hidden=false;
@@ -311,19 +339,61 @@ function renderRank(){const el=document.getElementById('rank'),k=S.sel;let base=
    </tbody></table></div>${R.length>S.lim?`<button class="more" data-more>Mostrar mais ${fmt.format(Math.min(200,R.length-S.lim))}</button>`:''}`;}
 
 // ---------- navegação ----------
-function go(key){if(!key)return;if(key.startsWith('PA:')||key==='UF:ZZ'){if(S.esc!=='ex'){S.esc='ex';S.lf=null;S.sel=key;syncBtns();drawMap();}}
+function go(key){if(!key)return;if(S.esc==='vi'){S.esc=key.startsWith('PA:')||key==='UF:ZZ'?'ex':'br';syncBtns();showVi();drawMap();}if(key.startsWith('PA:')||key==='UF:ZZ'){if(S.esc!=='ex'){S.esc='ex';S.lf=null;S.sel=key;syncBtns();drawMap();}}
   else if(S.esc!=='br'){S.esc='br';S.lf=null;S.sel=key;syncBtns();drawMap();}
   S.sel=key;S.lim=60;tipHide();saveHash();render();}
-function render(){renderRes();paint();renderRank();}
+function render(){renderRes();paint();renderRank();renderLocais();}
+// ---------- locais de votação e seções ----------
+let SEC={},VIS=null;
+async function secOf(key){if(SEC[key])return SEC[key];const j=await getJSON('sec/'+key+'.json');return SEC[key]=j;}
+const crit=s=>{const gL=s[7]-s[2],gF=s[8]-s[3];return [gL>0&&gF<0,gL>0&&gF<=-10,gL-gF>=50];};
+const CRT=['Lula subiu e Flávio caiu','Lula subiu e Flávio caiu 10 votos ou mais','Lula ganhou 50 votos ou mais acima de Flávio'];
+const vv=s=>[s[2]+s[3]+s[4],s[7]+s[8]+s[9]];
+function secRows(list,mostrarLocal){return `<table class="st2"><thead><tr><th>${mostrarLocal?'Local · ':''}Zona/Seção</th><th>Lula 1º→2º</th><th>Var.</th><th>Flávio 1º→2º</th><th>Var.</th></tr></thead><tbody>${list.map(([s,loc])=>{const c=crit(s),f=c[0]||c[2],gL=s[7]-s[2],gF=s[8]-s[3];
+  return `<tr class="${f?'fl':''}"><td>${mostrarLocal?`${esc(loc)}<small>`:''}Z ${s[0]} · S ${s[1]}${c[0]?'<span class="flag">L↑ F↓</span>':''}${c[2]?'<span class="flag">+50</span>':''}${mostrarLocal?'</small>':''}</td><td>${s[2]} → ${s[7]}</td><td class="${gL>0?'up':gL<0?'down':''}">${sv(gL)}</td><td>${s[3]} → ${s[8]}</td><td class="${gF>0?'up':gF<0?'down':''}">${sv(gF)}</td></tr>`;}).join('')}</tbody></table>`;}
+let locK=null;
+async function renderLocais(){const el=document.getElementById('locais'),k=S.sel;
+  const keys=k.startsWith('MU:')?[k.slice(3)]:k.startsWith('PA:')?(CIT[k.slice(3)]||[]).map(c=>'zz'+c):[];
+  if(!keys.length||S.esc==='vi'){el.hidden=true;locK=null;return;}
+  if(locK===k&&!el.hidden)return;locK=k;el.hidden=false;el.innerHTML='<p class="sub">Carregando locais de votação…</p>';
+  let L=[];try{for(const key of keys){const j=await secOf(key);L=L.concat(j.l);}}catch(e){el.innerHTML='<p class="sub">Não foi possível carregar as seções.</p>';return;}
+  if(locK!==k)return;
+  L.sort((a,b)=>a[0].localeCompare(b[0],'pt-BR'));const ns=L.reduce((s,l)=>s+l[2].length,0),nf=L.reduce((s,l)=>s+l[2].filter(x=>{const c=crit(x);return c[0]||c[2];}).length,0);
+  el.innerHTML=`<div class="hd"><h3>Locais de votação <span class="sub">(${L.length} locais, ${fmt.format(ns)} seções)</span></h3><span class="acts" style="margin:0"><button class="btn lt" data-pdfloc>Gerar PDF das seções</button></span></div>
+   <p class="obs" style="margin:0 0 6px">Toque num local para ver as seções. ${nf?`<span class="flag">L↑ F↓</span> Lula subiu e Flávio caiu · <span class="flag">+50</span> Lula ganhou 50+ votos acima de Flávio (${fmt.format(nf)} seções aqui).`:''}</p>
+   ${L.map(([nm,end,ss])=>{let a=[0,0,0,0,0,0];ss.forEach(s=>{a[0]+=s[2];a[1]+=s[3];a[2]+=s[2]+s[3]+s[4];a[3]+=s[7];a[4]+=s[8];a[5]+=s[7]+s[8]+s[9];});
+     const l1=a[0]/(a[2]||1),l2=a[3]/(a[5]||1),f1=a[1]/(a[2]||1),f2=a[4]/(a[5]||1),fl=ss.filter(x=>{const c=crit(x);return c[0]||c[2];}).length;
+     return `<details class="lc"><summary><span class="ln">${esc(nm)}${fl?` <span class="flag">${fl}</span>`:''}</span><span class="lv">Lula ${pf(l2)}<small>${vp(l2-l1,a[3]-a[0])}</small></span><span class="lv">Flávio ${pf(f2)}<small>${vp(f2-f1,a[4]-a[1])}</small></span><span class="la">${esc(end)} · ${ss.length} ${ss.length>1?'seções':'seção'}</span></summary>${secRows(ss.map(s=>[s,nm]))}</details>`;}).join('')}`;
+  el._L=L;}
+// ---------- vistoria ----------
+const V={c:0};
+async function renderVist(){const el=document.getElementById('vist');if(!VIS){el.innerHTML='<p class="sub">Carregando…</p>';try{VIS=await getJSON('vistoria.json');}catch(e){el.innerHTML='<p class="sub">Não foi possível carregar a vistoria.</p>';return;}}
+  const c=V.c,ufs=Object.keys(VIS.uf).filter(u=>VIS.uf[u].c[c]).sort((a,b)=>VIS.uf[b].c[c]-VIS.uf[a].c[c]);
+  el.innerHTML=`<h2>Vistoria das seções</h2><p class="sub">Seções eleitorais (urnas) comparando o 1º e o 2º turno. Escolha o critério:</p>
+   <div class="chips" style="margin-bottom:10px">${CRT.map((t,i)=>`<button data-vc="${i}" aria-pressed="${i===c}">${t} <span class="cnt">(${fmt.format(VIS.tot[i])})</span></button>`).join('')}</div>
+   <p class="obs">Isso não indica irregularidade por si só. Do 1º para o 2º turno é comum: eleitores de outros candidatos migrarem, quem votou no 1º turno faltar no 2º, e eleitores mudarem o voto. Os números são a soma oficial dos boletins de urna publicada pelo TSE. Total do Brasil: ${fmt.format(499205)} seções.</p>
+   <div class="acts" style="margin:6px 0 12px"><button class="btn lt" data-pdfvis="resumo">PDF: resumo por estado e município</button></div>
+   ${ufs.map(u=>`<details class="vg" data-vuf="${u}"><summary><span>${UFN[u]||u}</span><span class="cnt">${fmt.format(VIS.uf[u].c[c])} seções</span></summary><div class="in"></div></details>`).join('')}`;}
+function munNome(key){return key.startsWith('zz')?(VIS&&VIS.zz[key]?VIS.zz[key]:key):NOMES&&NOMES[key]?NOMES[key][1]:key;}
+function abrirUF(det){const u=det.dataset.vuf,c=V.c,m=VIS.uf[u].m,ks=Object.keys(m).filter(k=>m[k][c]).sort((a,b)=>munNome(a).localeCompare(munNome(b),'pt-BR'));
+  det.querySelector('.in').innerHTML=`<div class="acts" style="margin:6px 0"><button class="btn lt" data-pdfvis="${u}">PDF das seções ${u==='ZZ'?'do exterior':deUF('UF:'+u)}</button></div>`+ks.map(k=>`<details class="vg" data-vmu="${k}"><summary><span>${esc(munNome(k))}</span><span class="cnt">${fmt.format(m[k][c])}</span></summary><div class="in"></div></details>`).join('');}
+async function abrirMU(det){const k=det.dataset.vmu,box=det.querySelector('.in');box.innerHTML='<p class="sub">Carregando…</p>';
+  try{const j=await secOf(k),c=V.c,list=[];for(const [nm,,ss] of j.l)for(const s of ss)if(crit(s)[c])list.push([s,nm]);list.sort((a,b)=>a[0][0]-b[0][0]||a[0][1]-b[0][1]);
+    box.innerHTML=secRows(list,true)+(k.startsWith('zz')?'':`<button class="more" data-go="MU:${k}">Abrir o município no mapa</button>`);}catch(e){box.innerHTML='<p class="sub">Não foi possível carregar.</p>';}}
+document.addEventListener('toggle',e=>{const d=e.target;if(!d.open)return;if(d.dataset&&d.dataset.vuf&&!d.querySelector('.in').innerHTML)abrirUF(d);if(d.dataset&&d.dataset.vmu&&!d.querySelector('.in').innerHTML)abrirMU(d);},true);
+function showVi(){const vi=S.esc==='vi';['main','rank','locais'].forEach(id=>{const el=document.getElementById(id);if(vi)el.hidden=true;else if(id==='main')el.hidden=false;});document.getElementById('vist').hidden=!vi;document.querySelector('.srch').hidden=vi;if(vi)renderVist();else{locK=null;}}
 function syncBtns(){document.querySelectorAll('[data-esc]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.esc===S.esc));
   document.getElementById('geo').hidden=S.esc!=='br';document.querySelectorAll('[data-geo]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.geo===S.geo));
   document.querySelectorAll('[data-m]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===S.m));}
-function saveHash(){try{history.replaceState(null,'','#'+[S.sel.replace(':','-'),S.geo==='mu'?'mun':'',S.m!=='venc'?S.m:''].filter(Boolean).join('/'));}catch(e){}}
-function lerHash(){const h=decodeURIComponent(location.hash.slice(1)).split('/');const k=(h[0]||'BR').replace('-',':');
+function saveHash(){try{if(S.esc==='vi'){history.replaceState(null,'','#vistoria');return;}history.replaceState(null,'','#'+[S.sel.replace(':','-'),S.geo==='mu'?'mun':'',S.m!=='venc'?S.m:''].filter(Boolean).join('/'));}catch(e){}}
+function lerHash(){const h=decodeURIComponent(location.hash.slice(1)).split('/');if(h[0]==='vistoria'){S.esc='vi';syncBtns();setTimeout(showVi,0);return;}const k=(h[0]||'BR').replace('-',':');
   if(k==='BR'||/^(UF|MU|PA):/.test(k))S.sel=k;if(h.includes('mun'))S.geo='mu';for(const m of ['vir','gan'])if(h.includes(m))S.m=m;
   S.esc=S.sel.startsWith('PA:')||S.sel==='UF:ZZ'?'ex':'br';syncBtns();}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){e.preventDefault();go(g.dataset.go);if(innerWidth<860&&g.closest('#rank'))document.getElementById('res').scrollIntoView({behavior:RM.matches?'auto':'smooth'});return;}
-  const b=e.target.closest('[data-esc]');if(b){S.esc=b.dataset.esc;S.lf=null;S.sel=S.esc==='ex'?'UF:ZZ':'BR';syncBtns();drawMap();saveHash();render();return;}
+  const b=e.target.closest('[data-esc]');if(b){S.esc=b.dataset.esc;S.lf=null;if(S.esc==='vi'){syncBtns();showVi();saveHash();return;}S.sel=S.esc==='ex'?'UF:ZZ':'BR';syncBtns();showVi();drawMap();saveHash();render();return;}
+  const vc=e.target.closest('[data-vc]');if(vc){V.c=+vc.dataset.vc;renderVist();return;}
+  const pv=e.target.closest('[data-pdfvis]');if(pv){pdfVist(pv);return;}
+  if(e.target.closest('[data-pdfloc]')){pdfLocais(e.target.closest('[data-pdfloc]'));return;}
   const gg=e.target.closest('[data-geo]');if(gg){S.geo=gg.dataset.geo;S.lf=null;syncBtns();drawMap();saveHash();render();return;}
   const m=e.target.closest('[data-m]');if(m){S.m=m.dataset.m;S.lf=null;syncBtns();saveHash();render();return;}
   const lf=e.target.closest('[data-lf]');if(lf){S.lf=S.lf===lf.dataset.lf?null:lf.dataset.lf;render();return;}
@@ -381,6 +451,38 @@ async function share(btn){const old=btn.textContent;btn.disabled=true;btn.textCo
     if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fn});}catch(e){}}
     else{let done=false;if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:fn,data:blob});done=true;}catch(e){done=e&&e.code==='declined';}}}
       if(!done){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();}}}
+  catch(e){console.error(e);}btn.disabled=false;btn.textContent=old;}
+// ---------- PDFs de seções ----------
+async function pdfTabela(titulo,sub,head,body,fn,colStyles){await ensurePDF();const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true}),M=10;
+  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(tx('Eleições 2026 · Presidente · 1º e 2º turno'),M,14);doc.setFontSize(11);doc.text(tx(titulo),M,21);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(92,107,102);doc.text(doc.splitTextToSize(tx(sub),277),M,27);doc.setTextColor(22,35,31);
+  doc.autoTable({head:[head],body,startY:35,margin:{left:M,right:M,bottom:14},styles:{fontSize:7.5,cellPadding:1.3,textColor:[22,35,31]},headStyles:{fillColor:[22,35,31],textColor:255},alternateRowStyles:{fillColor:[244,247,245]},columnStyles:colStyles||{},
+    didParseCell:h=>{if(h.section==='body'&&typeof h.cell.raw==='string'&&/^[+-]\d/.test(h.cell.raw)&&h.column.index>1)h.cell.styles.textColor=h.cell.raw[0]==='-'?[178,59,59]:[30,127,79];},
+    didDrawPage:()=>{doc.setFontSize(7.5);doc.setTextColor(92,107,102);doc.text(tx('Fonte: TSE, votação por seção eleitoral (dados abertos, 26/10/2026). Não indica irregularidade por si só.'),M,203);doc.text('Página '+doc.internal.getNumberOfPages(),287,203,{align:'right'});doc.setTextColor(22,35,31);}});
+  await entregar(doc.output('blob'),fn);}
+async function entregar(blob,fn){fn=fn.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\\/:*?"<>|]/g,'');const file=new File([blob],fn,{type:blob.type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fn});}catch(e){}return;}
+  if(window.claude&&window.claude.use){const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:fn,data:blob});return;}catch(e){if(e&&e.code==='declined')return;}}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();}
+const sd=n=>(n>0?'+':n<0?'-':'')+fmt.format(Math.abs(n));
+async function pdfLocais(btn){const el=document.getElementById('locais'),L=el._L;if(!L)return;const old=btn.textContent;btn.disabled=true;btn.textContent='Gerando PDF…';
+  try{const body=[];for(const [nm,,ss] of L)for(const s of ss){const c=crit(s);body.push([tx(nm),`${s[0]} / ${s[1]}`,String(s[2]),String(s[7]),sd(s[7]-s[2]),String(s[3]),String(s[8]),sd(s[8]-s[3]),(c[0]?'L↑F↓ ':'').replace('↑','+').replace('↓','-')+(c[2]?'+50':'')]);}
+    await pdfTabela(`Seções de ${nome(S.sel)} (${body.length})`,'Votos de Lula e Flávio Bolsonaro em cada seção, no 1º e no 2º turno. Marcas: L+F- = Lula subiu e Flávio caiu; +50 = Lula ganhou 50 votos ou mais acima de Flávio.',
+      ['Local de votação','Zona / Seção','Lula 1º','Lula 2º','Var. Lula','Flávio 1º','Flávio 2º','Var. Flávio','Marca'],body,`Eleicoes 2026 - Secoes - ${nome(S.sel)}.pdf`,{0:{cellWidth:90}});}
+  catch(e){console.error(e);}btn.disabled=false;btn.textContent=old;}
+function pool(items,n,fn){let i=0;const res=[];return Promise.all(Array.from({length:n},async()=>{while(i<items.length){const k=i++;try{res[k]=await fn(items[k]);}catch(e){res[k]=null;}}})).then(()=>res);}
+async function pdfVist(btn){const old=btn.textContent;btn.disabled=true;const c=V.c,u=btn.dataset.pdfvis;
+  try{if(!NOMES){btn.textContent='Carregando nomes…';while(!NOMES)await new Promise(r=>setTimeout(r,300));}
+    if(u==='resumo'){btn.textContent='Gerando PDF…';const body=[];for(const uf of Object.keys(VIS.uf).sort((a,b)=>(UFN[a]||a).localeCompare(UFN[b]||b,'pt-BR'))){const m=VIS.uf[uf].m;
+        for(const k of Object.keys(m).filter(k=>m[k][c]).sort((a,b)=>munNome(a).localeCompare(munNome(b),'pt-BR')))body.push([uf,tx(munNome(k)),fmt.format(m[k][c])]);}
+      await pdfTabela(`Vistoria: ${CRT[c]} · resumo por município`,`${fmt.format(VIS.tot[c])} seções no total. Em cada linha, quantas seções do município se encaixam no critério.`,['UF','Município','Seções'],body,`Eleicoes 2026 - Vistoria - resumo.pdf`,{2:{halign:'right'}});}
+    else{const m=VIS.uf[u].m,ks=Object.keys(m).filter(k=>m[k][c]).sort((a,b)=>munNome(a).localeCompare(munNome(b),'pt-BR'));let feito=0;
+      const files=await pool(ks,6,async k=>{const j=await secOf(k);btn.textContent=`Carregando ${++feito} de ${ks.length}…`;return j;});
+      const body=[];ks.forEach((k,i)=>{const j=files[i];if(!j)return;const list=[];for(const [nm,,ss] of j.l)for(const s of ss)if(crit(s)[c])list.push([s,nm]);list.sort((a,b)=>a[0][0]-b[0][0]||a[0][1]-b[0][1]);
+        for(const [s,nm] of list)body.push([tx(munNome(k)),`${s[0]} / ${s[1]}`,tx(nm),String(s[2]),String(s[7]),sd(s[7]-s[2]),String(s[3]),String(s[8]),sd(s[8]-s[3])]);});
+      btn.textContent='Gerando PDF…';
+      await pdfTabela(`Vistoria ${u==='ZZ'?'do exterior':deUF('UF:'+u)}: ${CRT[c]} (${fmt.format(body.length)} seções)`,'Ordem: município (alfabética), zona e seção. Votos de Lula e Flávio Bolsonaro na seção, no 1º e no 2º turno.',
+        ['Município','Zona / Seção','Local de votação','Lula 1º','Lula 2º','Var. Lula','Flávio 1º','Flávio 2º','Var. Flávio'],body,`Eleicoes 2026 - Vistoria - ${UFN[u]||u}.pdf`,{0:{cellWidth:42},2:{cellWidth:80}});}}
   catch(e){console.error(e);}btn.disabled=false;btn.textContent=old;}
 // ---------- PDF da lista ----------
 let PDFL=null;
